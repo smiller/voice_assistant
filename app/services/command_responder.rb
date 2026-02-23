@@ -6,7 +6,7 @@ class CommandResponder
   def respond(transcript:, user:)
     command = CommandParser.new.parse(transcript)
     text = response_text(command, user)
-    schedule_reminder(command, user, text)
+    schedule_reminder(command, user)
     @tts_client.synthesize(text: text, voice_id: user.elevenlabs_voice_id)
   end
 
@@ -39,7 +39,7 @@ class CommandResponder
     end
   end
 
-  def schedule_reminder(command, user, confirmation_text)
+  def schedule_reminder(command, user)
     fire_at = case command[:intent]
     when :timer
       command[:params][:minutes].minutes.from_now
@@ -62,7 +62,7 @@ class CommandResponder
 
   def resolve_reminder_time(params, user)
     Time.use_zone(user.timezone) do
-      today = Time.current.in_time_zone(user.timezone)
+      today = Time.current
       time = Time.zone.local(today.year, today.month, today.day, params[:hour], params[:minute])
       time.past? ? time + 1.day : time
     end

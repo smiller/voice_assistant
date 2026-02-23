@@ -131,6 +131,20 @@ RSpec.describe CommandResponder do
       end
     end
 
+    context "when UTC date is ahead of the user's local date" do
+      let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
+
+      # travel_to UTC Feb 24 01:00 = ET Feb 23 20:00 (8pm); 9pm has not yet passed
+      it "schedules using the user's local date, not the UTC date" do
+        travel_to Time.new(2026, 2, 24, 1, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 9pm reminder to take medication", user: user)
+
+          expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 21, 0, 0) }
+          expect(Reminder.last.fire_at).to be_within(1.second).of(expected_fire_at)
+        end
+      end
+    end
+
     context "when the reminder time has already passed today" do
       let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
 
