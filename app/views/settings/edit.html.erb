@@ -1,0 +1,25 @@
+<h1>Settings</h1>
+
+<%= form_with model: current_user, url: settings_path do |f| %>
+  <div>
+    <%= f.label :elevenlabs_voice_id, "ElevenLabs Voice ID" %>
+    <%= f.text_field :elevenlabs_voice_id %>
+  </div>
+
+  <div>
+    <%= f.label :lat, "Latitude" %>
+    <%= f.number_field :lat, step: :any %>
+  </div>
+
+  <div>
+    <%= f.label :lng, "Longitude" %>
+    <%= f.number_field :lng, step: :any %>
+  </div>
+
+  <div>
+    <%= f.label :timezone, "Timezone" %>
+    <%= f.time_zone_select :timezone %>
+  </div>
+
+  <%= f.submit "Save settings" %>
+<% end %>

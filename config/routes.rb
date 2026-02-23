@@ -7,6 +7,7 @@ Rails.application.routes.draw do
 
   resources :voice_commands, only: [ :index, :create ]
   resources :voice_alerts, only: [ :show ]
+  resource :settings, only: [ :edit, :update ]
   get "config" => "config#show", as: :config
 
   root "voice_commands#index"
