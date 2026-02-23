@@ -81,7 +81,7 @@ erDiagram
 - `voice_commands.status` — `received`, `processed`, `scheduled`, `failed`
 - `reminders.status` — `pending`, `delivered`, `cancelled`
 - `users.lat` / `users.lng` — stored for per-user sunset calculation; can be updated in settings
-- `users.timezone` — IANA timezone string (e.g. `"America/New_York"`); set from browser `Intl.DateTimeFormat().resolvedOptions().timeZone` at registration; used to interpret "7am" in reminder scheduling
+- `users.timezone` — Rails timezone string (e.g. `"Eastern Time (US & Canada)"`); defaults to `"Eastern Time (US & Canada)"` via `after_initialize`; can be overridden per-user in settings; used to interpret "7am" in reminder scheduling
 
 ---
 
@@ -206,13 +206,13 @@ module ApplicationCable
     private
 
     def find_verified_user
-      User.find(cookies.signed[:user_id]) || reject_unauthorized_connection
+      User.find_by(id: request.session[:user_id]) || reject_unauthorized_connection
     end
   end
 end
 ```
 
-*Note:* Session-based auth uses `cookies.signed[:user_id]` — set this alongside `session[:user_id]` in `SessionsController#create`.
+*Note:* Action Cable connection authenticates via `request.session[:user_id]`, consistent with how `SessionsController#create` stores the user.
 
 ---
 
@@ -588,7 +588,7 @@ Any feature accessible via voice command should also be accessible via a REST JS
 
 ### Functional
 
-- [ ] User can register with email/password; timezone auto-captured from browser at registration
+- [ ] Users are invite-only; admin creates accounts via `rails console` (`User.create!(email:, password:)`; timezone defaults to Eastern Time)
 - [ ] User can update their ElevenLabs voice ID, lat/lng, and timezone in settings
 - [ ] Pressing spacebar starts recording; releasing submits (spacebar ignored when cursor is in a text field)
 - [ ] Recording auto-stops after 15 seconds
@@ -629,10 +629,10 @@ Any feature accessible via voice command should also be accessible via a REST JS
 - [ ] `rails g rspec:install`, configure FactoryBot in `spec/rails_helper.rb`
 - [ ] `config/mutant.yml`
 - [ ] User model + migration (`email`, `password_digest`, `elevenlabs_voice_id`, `lat`, `lng`, `timezone`)
-- [ ] RegistrationsController (`new`, `create`) — captures timezone from hidden field populated by JS (`Intl.DateTimeFormat().resolvedOptions().timeZone`)
+- ~~RegistrationsController~~ — invite-only; admin creates users via `rails console`
 - [ ] SessionsController (`new`, `create`, `destroy`)
 - [ ] ApplicationController auth helpers (`current_user`, `require_authentication`)
-- [ ] `ApplicationCable::Connection` with `current_user` from `cookies.signed[:user_id]`
+- [x] `ApplicationCable::Connection` with `current_user` from `request.session[:user_id]`
 - [ ] `config/cable.yml` — async (dev), Redis (prod)
 - [ ] `config/initializers/sidekiq.rb`
 - [ ] Verify `protect_from_forgery with: :exception` is active in `ApplicationController`; add CSRF meta tag to `application.html.erb`
