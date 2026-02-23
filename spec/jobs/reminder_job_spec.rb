@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe ReminderJob do
   let(:tts_client) { instance_double(ElevenLabsClient) }
   let(:user) { create(:user, elevenlabs_voice_id: "voice123") }
-  let(:reminder) { create(:reminder, user: user, message: "take medication", fire_at: 1.hour.from_now) }
+  let(:reminder) { create(:reminder, user: user, kind: :reminder, message: "take medication", fire_at: 1.hour.from_now) }
   let(:audio_bytes) { "\xFF\xFB\x90\x00".b }
 
   let(:cache_store) { ActiveSupport::Cache::MemoryStore.new }
@@ -44,11 +44,13 @@ RSpec.describe ReminderJob do
     end
 
     context "when reminder is pending" do
-      it "synthesizes audio with the user voice and reminder message" do
-        described_class.perform_now(reminder.id)
+      it "synthesizes audio prefixed with the current time in the user's timezone" do
+        travel_to Time.new(2026, 2, 23, 21, 0, 0, "UTC") do  # 4:00 PM ET
+          described_class.perform_now(reminder.id)
 
-        expect(tts_client).to have_received(:synthesize)
-          .with(text: "take medication", voice_id: "voice123")
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "It's 4:00 PM. Reminder: take medication", voice_id: "voice123")
+        end
       end
 
       it "stores audio in Rails cache under a token key" do
@@ -81,9 +83,23 @@ RSpec.describe ReminderJob do
       end
     end
 
+    context "when reminder is a timer kind" do
+      let(:reminder) do
+        create(:reminder, user: user, kind: :timer,
+          message: "Timer finished after 5 minutes", fire_at: 1.hour.from_now)
+      end
+
+      it "synthesizes the message without a time prefix" do
+        described_class.perform_now(reminder.id)
+
+        expect(tts_client).to have_received(:synthesize)
+          .with(text: "Timer finished after 5 minutes", voice_id: "voice123")
+      end
+    end
+
     context "when reminder recurs daily" do
       let(:reminder) do
-        create(:reminder, user: user, message: "write morning pages",
+        create(:reminder, user: user, kind: :daily_reminder, message: "write morning pages",
           fire_at: Time.new(2026, 2, 23, 7, 0, 0, "UTC"), recurs_daily: true)
       end
 

@@ -79,6 +79,7 @@ RSpec.describe CommandResponder do
 
           reminder = Reminder.last
           expect(reminder.user).to eq(user)
+          expect(reminder.kind).to eq("timer")
           expect(reminder.message).to eq("Timer finished after 5 minutes")
           expect(reminder.fire_at).to eq(5.minutes.from_now)
           expect(reminder.recurs_daily).to be(false)
@@ -113,6 +114,7 @@ RSpec.describe CommandResponder do
           responder.respond(transcript: "set a 9pm reminder to take medication", user: user)
 
           reminder = Reminder.last
+          expect(reminder.kind).to eq("reminder")
           expect(reminder.message).to eq("take medication")
           expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 21, 0, 0) }
           expect(reminder.fire_at).to be_within(1.second).of(expected_fire_at)
@@ -214,11 +216,12 @@ RSpec.describe CommandResponder do
         end
       end
 
-      it "creates a Reminder with recurs_daily: true" do
+      it "creates a Reminder with recurs_daily: true and kind: daily_reminder" do
         travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
           responder.respond(transcript: "set a daily 7am reminder to write morning pages", user: user)
 
           reminder = Reminder.last
+          expect(reminder.kind).to eq("daily_reminder")
           expect(reminder.message).to eq("write morning pages")
           expect(reminder.recurs_daily).to be(true)
         end

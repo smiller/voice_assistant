@@ -2,6 +2,12 @@ class Reminder < ApplicationRecord
   belongs_to :user
   belongs_to :voice_command, optional: true
 
+  enum :kind, {
+    reminder: "reminder",
+    daily_reminder: "daily_reminder",
+    timer: "timer"
+  }
+
   enum :status, {
     pending: "pending",
     delivered: "delivered",

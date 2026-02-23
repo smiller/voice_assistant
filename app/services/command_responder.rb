@@ -56,7 +56,7 @@ class CommandResponder
     end
 
     recurs = command[:intent] == :daily_reminder
-    reminder = Reminder.create!(user: user, message: message, fire_at: fire_at, recurs_daily: recurs)
+    reminder = Reminder.create!(user: user, kind: command[:intent], message: message, fire_at: fire_at, recurs_daily: recurs)
     ReminderJob.set(wait_until: fire_at).perform_later(reminder.id)
   end
 
