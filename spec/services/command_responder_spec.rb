@@ -53,6 +53,8 @@ RSpec.describe CommandResponder do
     end
 
     context "with a timer transcript" do
+      let(:user) { create(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
+
       it "returns synthesized confirmation audio" do
         result = responder.respond(transcript: "set a timer for 5 minutes", user: user)
 
@@ -60,9 +62,34 @@ RSpec.describe CommandResponder do
         expect(tts_client).to have_received(:synthesize)
           .with(text: "Timer set for 5 minutes", voice_id: "voice123")
       end
+
+      it "creates a pending Reminder 5 minutes from now" do
+        travel_to Time.new(2026, 2, 23, 14, 0, 0, "UTC") do
+          expect {
+            responder.respond(transcript: "set a timer for 5 minutes", user: user)
+          }.to change(Reminder, :count).by(1)
+
+          reminder = Reminder.last
+          expect(reminder.user).to eq(user)
+          expect(reminder.message).to eq("Timer set for 5 minutes")
+          expect(reminder.fire_at).to eq(5.minutes.from_now)
+          expect(reminder.recurs_daily).to be(false)
+          expect(reminder.status).to eq("pending")
+        end
+      end
+
+      it "enqueues a ReminderJob scheduled 5 minutes from now with the reminder id" do
+        travel_to Time.new(2026, 2, 23, 14, 0, 0, "UTC") do
+          expect {
+            responder.respond(transcript: "set a timer for 5 minutes", user: user)
+          }.to have_enqueued_job(ReminderJob).at(5.minutes.from_now).with(be_a(Integer))
+        end
+      end
     end
 
     context "with a reminder transcript" do
+      let(:user) { create(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
+
       it "returns synthesized confirmation audio" do
         result = responder.respond(transcript: "set a 9pm reminder to take medication", user: user)
 
@@ -70,15 +97,49 @@ RSpec.describe CommandResponder do
         expect(tts_client).to have_received(:synthesize)
           .with(text: "Reminder set for 9:00 PM to take medication", voice_id: "voice123")
       end
+
+      it "creates a pending Reminder at the specified time in user timezone" do
+        travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 9pm reminder to take medication", user: user)
+
+          reminder = Reminder.last
+          expect(reminder.message).to eq("take medication")
+          expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 21, 0, 0) }
+          expect(reminder.fire_at).to be_within(1.second).of(expected_fire_at)
+          expect(reminder.recurs_daily).to be(false)
+        end
+      end
+
+      it "preserves non-zero minutes in the fire_at time" do
+        travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 9:30pm reminder to take medication", user: user)
+
+          reminder = Reminder.last
+          expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 21, 30, 0) }
+          expect(reminder.fire_at).to be_within(1.second).of(expected_fire_at)
+        end
+      end
     end
 
     context "with a daily reminder transcript" do
+      let(:user) { create(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
+
       it "returns synthesized confirmation audio" do
         result = responder.respond(transcript: "set a daily 7am reminder to write morning pages", user: user)
 
         expect(result).to eq(audio_bytes)
         expect(tts_client).to have_received(:synthesize)
           .with(text: "Daily reminder set for 7:00 AM to write morning pages", voice_id: "voice123")
+      end
+
+      it "creates a Reminder with recurs_daily: true" do
+        travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
+          responder.respond(transcript: "set a daily 7am reminder to write morning pages", user: user)
+
+          reminder = Reminder.last
+          expect(reminder.message).to eq("write morning pages")
+          expect(reminder.recurs_daily).to be(true)
+        end
       end
     end
 

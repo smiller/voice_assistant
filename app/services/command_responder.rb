@@ -6,6 +6,7 @@ class CommandResponder
   def respond(transcript:, user:)
     command = CommandParser.new.parse(transcript)
     text = response_text(command, user)
+    schedule_reminder(command, user, text)
     @tts_client.synthesize(text: text, voice_id: user.elevenlabs_voice_id)
   end
 
@@ -34,6 +35,26 @@ class CommandResponder
     else
       "I didn't understand that"
     end
+  end
+
+  def schedule_reminder(command, user, confirmation_text)
+    fire_at = case command[:intent]
+    when :timer
+      command[:params][:minutes].minutes.from_now
+    when :reminder, :daily_reminder
+      p = command[:params]
+      Time.use_zone(user.timezone) { Time.zone.local(Time.current.year, Time.current.month, Time.current.day, p[:hour], p[:minute]) }
+    end
+    return unless fire_at
+
+    message = case command[:intent]
+    when :timer then confirmation_text
+    else command[:params][:message]
+    end
+
+    recurs = command[:intent] == :daily_reminder
+    reminder = Reminder.create!(user: user, message: message, fire_at: fire_at, recurs_daily: recurs)
+    ReminderJob.set(wait_until: fire_at).perform_later(reminder.id)
   end
 
   def format_time(hour, minute)

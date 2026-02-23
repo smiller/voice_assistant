@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_23_201933) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_23_202901) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -48,6 +48,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_201933) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "reminders", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "fire_at"
+    t.text "message"
+    t.boolean "recurs_daily", default: false, null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.bigint "voice_command_id"
+    t.index ["user_id"], name: "index_reminders_on_user_id"
+    t.index ["voice_command_id"], name: "index_reminders_on_voice_command_id"
+  end
+
   create_table "turns", force: :cascade do |t|
     t.text "assistant_response_text"
     t.bigint "conversation_id", null: false
@@ -83,6 +96,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_201933) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "reminders", "users"
+  add_foreign_key "reminders", "voice_commands"
   add_foreign_key "turns", "conversations"
   add_foreign_key "voice_commands", "users"
 end
