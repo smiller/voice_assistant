@@ -101,6 +101,18 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         expect(response).to have_http_status(:bad_request)
       end
+
+      context "when Deepgram returns a blank transcript" do
+        let(:deepgram) { instance_double(DeepgramClient, transcribe: "") }
+
+        it "returns 400 without creating a VoiceCommand" do
+          expect {
+            post "/voice_commands", params: { audio: audio_file }
+          }.not_to change(VoiceCommand, :count)
+
+          expect(response).to have_http_status(:bad_request)
+        end
+      end
     end
   end
 end

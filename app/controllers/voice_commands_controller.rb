@@ -9,6 +9,8 @@ class VoiceCommandsController < ApplicationController
     return head :bad_request unless audio
 
     transcript = DeepgramClient.new.transcribe(audio: audio.read)
+    return head :bad_request if transcript.blank?
+
     parsed = CommandParser.new.parse(transcript)
     command = VoiceCommand.create!(
       user: current_user,
