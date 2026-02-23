@@ -4,6 +4,5 @@ FactoryBot.define do
     password { "s3cr3tpassword" }
     lat { nil }
     lng { nil }
-    timezone { nil }
   end
 end

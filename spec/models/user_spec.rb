@@ -72,6 +72,18 @@ RSpec.describe User do
 
       expect(user.elevenlabs_voice_id).to eq("custom_voice")
     end
+
+    it "defaults timezone to Eastern Time (US & Canada)" do
+      user = build(:user)
+
+      expect(user.timezone).to eq("Eastern Time (US & Canada)")
+    end
+
+    it "does not override an explicitly set timezone" do
+      user = build(:user, timezone: "Pacific Time (US & Canada)")
+
+      expect(user.timezone).to eq("Pacific Time (US & Canada)")
+    end
   end
 
   describe "#authenticate" do

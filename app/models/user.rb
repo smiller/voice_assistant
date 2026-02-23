@@ -3,6 +3,7 @@ class User < ApplicationRecord
 
   after_initialize do
     self.elevenlabs_voice_id ||= ENV["ELEVENLABS_VOICE_ID"]
+    self.timezone ||= "Eastern Time (US & Canada)"
   end
 
   validates :email, presence: true,
