@@ -80,7 +80,7 @@ erDiagram
 - `voice_commands.params` — jsonb storing intent-specific data (e.g., `{minutes: 10}`, `{message: "write morning pages", daily: false}`)
 - `voice_commands.status` — `received`, `processed`, `scheduled`, `failed`
 - `reminders.status` — `pending`, `delivered`, `cancelled`
-- `users.lat` / `users.lng` — stored for per-user sunset calculation; can be updated in settings
+- `users.lat` / `users.lng` — stored for per-user sunset calculation; auto-populated at login via browser Geolocation API (hidden fields populated by JS before form submit); `SessionsController#create` saves them to the user if currently blank; can be overridden in settings
 - `users.timezone` — Rails timezone string (e.g. `"Eastern Time (US & Canada)"`); defaults to `"Eastern Time (US & Canada)"` via `after_initialize`; can be overridden per-user in settings; used to interpret "7am" in reminder scheduling
 
 ---
@@ -364,7 +364,7 @@ end
 // Targets: statusTarget (text display)
 // MAX_DURATION_MS = 15_000 (enforce in startRecording; auto-stop at limit)
 
-// connect() — bind keydown/keyup listeners on document
+// connect() — bind keydown/keyup listeners on document; call loadConfig()
 // handleKeydown(e) — guard: skip if e.target is INPUT/TEXTAREA/SELECT; skip if already recording
 // startRecording() — MediaRecorder.start(); set 15s auto-stop timeout
 // stopRecording() — MediaRecorder.stop(); collect chunks; postAudio()
@@ -375,6 +375,17 @@ end
 ```
 
 *Note:* Include `data-voice-target="status"` span in the view for recording state feedback ("Listening…", "Processing…").
+
+**`app/javascript/controllers/location_controller.js`** (Stimulus, on the login page)
+
+```js
+// Targets: latTarget, lngTarget (hidden input fields on the login form)
+// connect() — call navigator.geolocation.getCurrentPosition(success, error)
+// success(position) — set latTarget.value, lngTarget.value from position.coords
+// error() — silently ignore; fields remain blank
+```
+
+The login form includes hidden `lat` and `lng` fields. `SessionsController#create` reads them and saves to the user via `current_user.update(lat:, lng:)` if the user's lat/lng are currently blank. Non-blank values are never overwritten.
 
 The Deepgram API key and user's `elevenlabs_voice_id` are served by a lightweight JSON endpoint:
 
@@ -593,7 +604,7 @@ Any feature accessible via voice command should also be accessible via a REST JS
 - [ ] Pressing spacebar starts recording; releasing submits (spacebar ignored when cursor is in a text field)
 - [ ] Recording auto-stops after 15 seconds
 - [ ] "time check" → spoken current time
-- [ ] "sunset" → spoken sunset time for user's location (spoken error if lat/lng unset)
+- [ ] "sunset" → spoken sunset time for user's location (spoken error if lat/lng still unset after login geolocation attempt)
 - [ ] "set timer for N minutes" (digits or spoken words) → immediate spoken confirmation "Timer set for N minutes"; N minutes later, spoken "Timer N minutes elapsed"
 - [ ] "set HH:MM AM/PM reminder to [text]" → spoken confirmation; at that time in user's timezone, spoken "[time]. [text]"
 - [ ] "set daily HH:MM AM/PM reminder to [text]" → fires every day in user's timezone; reschedules after delivery
@@ -649,6 +660,8 @@ Any feature accessible via voice command should also be accessible via a REST JS
 - [ ] `VoiceCommandsController#create` + spec
 - [ ] `ConfigController#show` (serves Deepgram key + voice ID)
 - [ ] `app/javascript/controllers/voice_controller.js`
+- [ ] `app/javascript/controllers/location_controller.js` — populates hidden lat/lng fields on login form via Geolocation API; silent on denial
+- [ ] `SessionsController#create` saves lat/lng from params to user if currently blank
 - [ ] `app/views/voice_commands/index.html.erb` (main UI)
 - [ ] Routes: `resources :voice_commands, only: [:index, :create]`, `get "config" => "config#show"`
 
