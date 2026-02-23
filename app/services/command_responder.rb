@@ -27,11 +27,13 @@ class CommandResponder
     when :reminder
       p = command[:params]
       time_str = format_time(p[:hour], p[:minute])
-      "Reminder set for #{time_str} to #{p[:message]}"
+      tomorrow = resolve_reminder_time(p, user).to_date > Time.current.in_time_zone(user.timezone).to_date
+      "Reminder set for #{time_str}#{' tomorrow' if tomorrow} to #{p[:message]}"
     when :daily_reminder
       p = command[:params]
       time_str = format_time(p[:hour], p[:minute])
-      "Daily reminder set for #{time_str} to #{p[:message]}"
+      tomorrow = resolve_reminder_time(p, user).to_date > Time.current.in_time_zone(user.timezone).to_date
+      "Daily reminder set for #{time_str}#{' tomorrow' if tomorrow} to #{p[:message]}"
     else
       "I didn't understand that"
     end
@@ -42,8 +44,7 @@ class CommandResponder
     when :timer
       command[:params][:minutes].minutes.from_now
     when :reminder, :daily_reminder
-      p = command[:params]
-      Time.use_zone(user.timezone) { Time.zone.local(Time.current.year, Time.current.month, Time.current.day, p[:hour], p[:minute]) }
+      resolve_reminder_time(command[:params], user)
     end
     return unless fire_at
 
@@ -55,6 +56,14 @@ class CommandResponder
     recurs = command[:intent] == :daily_reminder
     reminder = Reminder.create!(user: user, message: message, fire_at: fire_at, recurs_daily: recurs)
     ReminderJob.set(wait_until: fire_at).perform_later(reminder.id)
+  end
+
+  def resolve_reminder_time(params, user)
+    Time.use_zone(user.timezone) do
+      today = Time.current.in_time_zone(user.timezone)
+      time = Time.zone.local(today.year, today.month, today.day, params[:hour], params[:minute])
+      time.past? ? time + 1.day : time
+    end
   end
 
   def format_time(hour, minute)

@@ -91,11 +91,13 @@ RSpec.describe CommandResponder do
       let(:user) { create(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
 
       it "returns synthesized confirmation audio" do
-        result = responder.respond(transcript: "set a 9pm reminder to take medication", user: user)
+        travel_to Time.new(2026, 2, 23, 0, 0, 0, "UTC") do
+          result = responder.respond(transcript: "set a 9pm reminder to take medication", user: user)
 
-        expect(result).to eq(audio_bytes)
-        expect(tts_client).to have_received(:synthesize)
-          .with(text: "Reminder set for 9:00 PM to take medication", voice_id: "voice123")
+          expect(result).to eq(audio_bytes)
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Reminder set for 9:00 PM to take medication", voice_id: "voice123")
+        end
       end
 
       it "creates a pending Reminder at the specified time in user timezone" do
@@ -121,15 +123,49 @@ RSpec.describe CommandResponder do
       end
     end
 
+    context "when the reminder time has already passed today" do
+      let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
+
+      # travel_to UTC 13:00 = 8:00 AM ET; 7am ET has already passed
+      it "says tomorrow in the confirmation" do
+        travel_to Time.new(2026, 2, 23, 13, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 7am reminder to take medication", user: user)
+
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Reminder set for 7:00 AM tomorrow to take medication", voice_id: "voice123")
+        end
+      end
+
+      it "creates the Reminder with fire_at tomorrow" do
+        travel_to Time.new(2026, 2, 23, 13, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 7am reminder to take medication", user: user)
+
+          expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 24, 7, 0, 0) }
+          expect(Reminder.last.fire_at).to be_within(1.second).of(expected_fire_at)
+        end
+      end
+
+      it "says tomorrow in a daily reminder confirmation" do
+        travel_to Time.new(2026, 2, 23, 13, 0, 0, "UTC") do
+          responder.respond(transcript: "set a daily 7am reminder to write morning pages", user: user)
+
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Daily reminder set for 7:00 AM tomorrow to write morning pages", voice_id: "voice123")
+        end
+      end
+    end
+
     context "with a daily reminder transcript" do
       let(:user) { create(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
 
       it "returns synthesized confirmation audio" do
-        result = responder.respond(transcript: "set a daily 7am reminder to write morning pages", user: user)
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          result = responder.respond(transcript: "set a daily 7am reminder to write morning pages", user: user)
 
-        expect(result).to eq(audio_bytes)
-        expect(tts_client).to have_received(:synthesize)
-          .with(text: "Daily reminder set for 7:00 AM to write morning pages", voice_id: "voice123")
+          expect(result).to eq(audio_bytes)
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Daily reminder set for 7:00 AM to write morning pages", voice_id: "voice123")
+        end
       end
 
       it "creates a Reminder with recurs_daily: true" do
@@ -145,31 +181,37 @@ RSpec.describe CommandResponder do
 
     context "with an 11am reminder transcript" do
       it "formats the time as AM" do
-        result = responder.respond(transcript: "set a 11am reminder to stretch", user: user)
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          result = responder.respond(transcript: "set a 11am reminder to stretch", user: user)
 
-        expect(result).to eq(audio_bytes)
-        expect(tts_client).to have_received(:synthesize)
-          .with(text: "Reminder set for 11:00 AM to stretch", voice_id: "voice123")
+          expect(result).to eq(audio_bytes)
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Reminder set for 11:00 AM to stretch", voice_id: "voice123")
+        end
       end
     end
 
     context "with a noon reminder transcript" do
       it "formats noon as 12:00 PM" do
-        result = responder.respond(transcript: "set a 12pm reminder to eat lunch", user: user)
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          result = responder.respond(transcript: "set a 12pm reminder to eat lunch", user: user)
 
-        expect(result).to eq(audio_bytes)
-        expect(tts_client).to have_received(:synthesize)
-          .with(text: "Reminder set for 12:00 PM to eat lunch", voice_id: "voice123")
+          expect(result).to eq(audio_bytes)
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Reminder set for 12:00 PM to eat lunch", voice_id: "voice123")
+        end
       end
     end
 
     context "with a midnight reminder transcript" do
       it "formats midnight as 12:00 AM" do
-        result = responder.respond(transcript: "set a 12am reminder to sleep", user: user)
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          result = responder.respond(transcript: "set a 12am reminder to sleep", user: user)
 
-        expect(result).to eq(audio_bytes)
-        expect(tts_client).to have_received(:synthesize)
-          .with(text: "Reminder set for 12:00 AM to sleep", voice_id: "voice123")
+          expect(result).to eq(audio_bytes)
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Reminder set for 12:00 AM to sleep", voice_id: "voice123")
+        end
       end
     end
   end
