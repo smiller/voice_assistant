@@ -559,7 +559,7 @@ ReminderJob#perform (async, Sidekiq worker)
 | Deepgram empty transcript | `CommandParser#parse` | Returns `{intent: :unknown}` → "Sorry, I didn't understand" |
 | ElevenLabs API down (immediate) | `ElevenLabsClient#synthesize` | Controller rescues, returns 503 JSON |
 | ElevenLabs API down (job) | `ReminderJob#perform` | Sidekiq retries (3x default); reminder stays `pending` |
-| No voice ID set | `ElevenLabsClient#synthesize` | Validate presence on user; redirect to settings on first login |
+| No voice ID set | `ElevenLabsClient#synthesize` | `after_initialize` on User defaults to `ENV["ELEVENLABS_VOICE_ID"]`; settings allow per-user override |
 | Tab closed at alert time | `Turbo::StreamsChannel.broadcast_*` | Action Cable silently drops if no subscriber — per brainstorm decision |
 | Past `fire_at` on reminder | `CommandParser` / `CommandResponder` | Detect in responder; return immediate error: "That time has already passed today" |
 | Cache miss on audio token | `VoiceAlertsController#show` | Return 404; Stimulus controller logs warning, removes alert element |
@@ -579,7 +579,7 @@ Any feature accessible via voice command should also be accessible via a REST JS
 1. **Timer fires while tab open**: schedule a 1-second timer, confirm Action Cable pushes alert, confirm audio plays
 2. **Daily reminder reschedules**: fire a daily reminder, confirm new `Reminder` record is created with `fire_at + 1.day`, confirm job enqueued
 3. **Unknown command**: post audio that transcribes to gibberish, confirm `intent: "unknown"` stored, confirm "Sorry" audio returned
-4. **No voice ID**: new user with no `elevenlabs_voice_id` attempts a command, confirm redirect to settings
+4. **Default voice ID**: new user with no explicit `elevenlabs_voice_id` uses `ENV["ELEVENLABS_VOICE_ID"]` default; confirm command succeeds without settings visit
 5. **ElevenLabs retry**: stub ElevenLabs to fail twice then succeed, confirm Sidekiq retries and reminder ultimately delivered
 
 ---
@@ -601,7 +601,7 @@ Any feature accessible via voice command should also be accessible via a REST JS
 - [ ] Timer/reminder silently dropped if browser tab is closed when job fires
 - [ ] Reminder with `fire_at` in the past → spoken "That time has already passed today"
 - [ ] All voice responses use the user's stored ElevenLabs voice ID
-- [ ] New user with no voice ID set is redirected to settings before any command is processed
+- [ ] New user defaults to `ENV["ELEVENLABS_VOICE_ID"]`; can override per-user in settings
 
 ### Non-Functional
 
@@ -665,7 +665,7 @@ Any feature accessible via voice command should also be accessible via a REST JS
 ### Phase 5: Per-User Settings
 - [ ] SettingsController (`edit`, `update`) + spec
 - [ ] `app/views/settings/edit.html.erb`
-- [ ] Validation: redirect to settings on first login if `elevenlabs_voice_id` blank
+- [ ] Optional: allow override of voice ID and lat/lng via settings form
 - [ ] Routes: `resource :settings, only: [:edit, :update]`
 
 ---
