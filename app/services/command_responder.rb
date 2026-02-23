@@ -23,7 +23,7 @@ class CommandResponder
       "Sunset today is at #{local.strftime("%-I:%M %p")}"
     when :timer
       minutes = command[:params][:minutes]
-      "Timer set for #{minutes} minutes"
+      "Timer set for #{minutes} #{"minute".pluralize(minutes)}"
     when :reminder
       p = command[:params]
       time_str = format_time(p[:hour], p[:minute])

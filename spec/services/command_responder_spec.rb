@@ -63,6 +63,14 @@ RSpec.describe CommandResponder do
           .with(text: "Timer set for 5 minutes", voice_id: "voice123")
       end
 
+      it "uses singular minute when the duration is 1" do
+        result = responder.respond(transcript: "set a timer for 1 minute", user: user)
+
+        expect(result).to eq(audio_bytes)
+        expect(tts_client).to have_received(:synthesize)
+          .with(text: "Timer set for 1 minute", voice_id: "voice123")
+      end
+
       it "creates a pending Reminder 5 minutes from now" do
         travel_to Time.new(2026, 2, 23, 14, 0, 0, "UTC") do
           expect {
