@@ -49,7 +49,9 @@ class CommandResponder
     return unless fire_at
 
     message = case command[:intent]
-    when :timer then confirmation_text
+    when :timer
+      minutes = command[:params][:minutes]
+      "Timer finished after #{minutes} #{"minute".pluralize(minutes)}"
     else command[:params][:message]
     end
 

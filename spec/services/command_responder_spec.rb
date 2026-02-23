@@ -79,7 +79,7 @@ RSpec.describe CommandResponder do
 
           reminder = Reminder.last
           expect(reminder.user).to eq(user)
-          expect(reminder.message).to eq("Timer set for 5 minutes")
+          expect(reminder.message).to eq("Timer finished after 5 minutes")
           expect(reminder.fire_at).to eq(5.minutes.from_now)
           expect(reminder.recurs_daily).to be(false)
           expect(reminder.status).to eq("pending")
