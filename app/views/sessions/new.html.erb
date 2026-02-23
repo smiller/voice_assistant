@@ -1,15 +1,25 @@
-<h1>Sign in</h1>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-card__icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1.5 17.93A8.001 8.001 0 0 1 4 11H2a10 10 0 0 0 9 9.95V23h2v-2.05A10 10 0 0 0 22 11h-2a8 8 0 0 1-6.5 7.93v.07h-3z"/>
+      </svg>
+    </div>
+    <h1 class="auth-card__title">Voice Assistant</h1>
+    <p class="auth-card__subtitle">Sign in to your account</p>
 
-<%= form_with url: session_path do |f| %>
-  <div>
-    <%= f.label :email %>
-    <%= f.email_field :email, autofocus: true, autocomplete: "email" %>
+    <%= form_with url: session_path do |f| %>
+      <div class="field">
+        <%= f.label :email %>
+        <%= f.email_field :email, autofocus: true, autocomplete: "email", placeholder: "you@example.com" %>
+      </div>
+
+      <div class="field">
+        <%= f.label :password %>
+        <%= f.password_field :password, autocomplete: "current-password", placeholder: "••••••••" %>
+      </div>
+
+      <%= f.submit "Sign in", class: "btn-primary" %>
+    <% end %>
   </div>
-
-  <div>
-    <%= f.label :password %>
-    <%= f.password_field :password, autocomplete: "current-password" %>
-  </div>
-
-  <%= f.submit "Sign in" %>
-<% end %>
+</div>
