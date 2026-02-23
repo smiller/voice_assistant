@@ -1,0 +1,177 @@
+require "rails_helper"
+
+RSpec.describe CommandParser do
+  subject(:parser) { described_class.new }
+
+  describe "#parse" do
+    context "with an empty string" do
+      it "returns unknown intent" do
+        result = parser.parse("")
+
+        expect(result[:intent]).to eq(:unknown)
+      end
+    end
+
+    context "with 'time check'" do
+      it "returns :time_check intent with empty params" do
+        result = parser.parse("time check")
+
+        expect(result[:intent]).to eq(:time_check)
+        expect(result[:params]).to eq({})
+      end
+    end
+
+    context "with 'sunset'" do
+      it "returns :sunset intent with empty params" do
+        result = parser.parse("sunset")
+
+        expect(result[:intent]).to eq(:sunset)
+        expect(result[:params]).to eq({})
+      end
+    end
+
+    context "with mixed-case input" do
+      it "matches case-insensitively" do
+        expect(parser.parse("Time Check")[:intent]).to eq(:time_check)
+        expect(parser.parse("SUNSET")[:intent]).to eq(:sunset)
+      end
+    end
+
+    context "with 'set timer for 5 minutes'" do
+      it "returns :timer intent with minutes param" do
+        result = parser.parse("set timer for 5 minutes")
+
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(5)
+      end
+    end
+
+    context "with spoken number words" do
+      it "converts 'ten' to 10 for timer" do
+        result = parser.parse("set timer for ten minutes")
+
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(10)
+      end
+    end
+
+    context "with 'timer 10 minutes' (no 'for')" do
+      it "still matches the timer intent" do
+        result = parser.parse("timer 10 minutes")
+
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(10)
+      end
+    end
+
+    context "with uppercase TIMER" do
+      it "matches case-insensitively" do
+        result = parser.parse("TIMER 5 MINUTES")
+
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(5)
+      end
+    end
+
+    context "with 'set 7am reminder to write morning pages'" do
+      it "returns :reminder intent with parsed hour, minute, and message" do
+        result = parser.parse("set 7am reminder to write morning pages")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(7)
+        expect(result[:params][:minute]).to eq(0)
+        expect(result[:params][:message]).to eq("write morning pages")
+      end
+    end
+
+    context "with 'set 7:30am reminder to do yoga'" do
+      it "parses minutes correctly" do
+        result = parser.parse("set 7:30am reminder to do yoga")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(7)
+        expect(result[:params][:minute]).to eq(30)
+        expect(result[:params][:message]).to eq("do yoga")
+      end
+    end
+
+    context "with 'set 9pm reminder to take medication'" do
+      it "converts pm hour to 24-hour format" do
+        result = parser.parse("set 9pm reminder to take medication")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(21)
+      end
+    end
+
+    context "with 'set daily 7am reminder to write morning pages'" do
+      it "returns :daily_reminder intent with parsed params" do
+        result = parser.parse("set daily 7am reminder to write morning pages")
+
+        expect(result[:intent]).to eq(:daily_reminder)
+        expect(result[:params][:hour]).to eq(7)
+        expect(result[:params][:minute]).to eq(0)
+        expect(result[:params][:message]).to eq("write morning pages")
+      end
+    end
+
+    context "with unrecognized input" do
+      it "returns :unknown intent with empty params" do
+        result = parser.parse("blah blah blah")
+
+        expect(result[:intent]).to eq(:unknown)
+        expect(result[:params]).to eq({})
+      end
+    end
+
+    context "with 12pm (noon)" do
+      it "keeps hour as 12" do
+        result = parser.parse("set 12pm reminder to eat lunch")
+
+        expect(result[:params][:hour]).to eq(12)
+      end
+    end
+
+    context "with 12am (midnight)" do
+      it "converts hour to 0" do
+        result = parser.parse("set 12am reminder to sleep")
+
+        expect(result[:params][:hour]).to eq(0)
+      end
+    end
+
+    context "with the same number word appearing twice in a transcript" do
+      it "replaces all occurrences" do
+        result = parser.parse("set daily ten am reminder to do ten pushups")
+
+        expect(result[:params][:message]).to eq("do 10 pushups")
+      end
+    end
+
+    context "with an uppercase number word" do
+      it "normalizes case-insensitively" do
+        result = parser.parse("set timer for TEN minutes")
+
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(10)
+      end
+    end
+
+    context "with uppercase PM" do
+      it "still converts to 24-hour format" do
+        result = parser.parse("set 7PM reminder to eat dinner")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(19)
+      end
+    end
+
+    context "with trailing whitespace in the reminder message" do
+      it "strips the message" do
+        result = parser.parse("set 7am reminder to write morning pages  ")
+
+        expect(result[:params][:message]).to eq("write morning pages")
+      end
+    end
+  end
+end

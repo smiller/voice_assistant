@@ -1,0 +1,15 @@
+usage: opensource
+
+integration:
+  name: rspec
+
+environment_variables:
+  RAILS_ENV: test
+
+requires:
+  - ./config/environment
+
+fail_fast: false
+
+mutation:
+  timeout: 10.0
