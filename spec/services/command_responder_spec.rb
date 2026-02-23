@@ -120,13 +120,37 @@ RSpec.describe CommandResponder do
         end
       end
 
+      it "schedules for today when the reminder time is a few minutes away" do
+        # travel_to 6:00 PM EST (UTC 23:00); 6:05 PM is in the future
+        travel_to Time.new(2026, 2, 23, 23, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 6:05pm reminder to check messages", user: user)
+
+          expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 18, 5, 0) }
+          expect(Reminder.last.fire_at).to be_within(1.second).of(expected_fire_at)
+        end
+      end
+
       it "preserves non-zero minutes in the fire_at time" do
         travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
-          responder.respond(transcript: "set a 9:30pm reminder to take medication", user: user)
+          responder.respond(transcript: "set a nine thirty pm reminder to take medication", user: user)
 
           reminder = Reminder.last
           expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 21, 30, 0) }
           expect(reminder.fire_at).to be_within(1.second).of(expected_fire_at)
+        end
+      end
+    end
+
+    context "when user timezone is stored as Rails name (Eastern Time (US & Canada))" do
+      let(:user) { create(:user, timezone: "Eastern Time (US & Canada)", elevenlabs_voice_id: "voice123") }
+
+      # travel_to 6:00 PM EST (UTC 23:00); 6:05 PM is in the future
+      it "schedules for today, not tomorrow" do
+        travel_to Time.new(2026, 2, 23, 23, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 6:05pm reminder to check messages", user: user)
+
+          expected_fire_at = Time.use_zone("Eastern Time (US & Canada)") { Time.zone.local(2026, 2, 23, 18, 5, 0) }
+          expect(Reminder.last.fire_at).to be_within(1.second).of(expected_fire_at)
         end
       end
     end

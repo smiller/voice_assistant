@@ -84,9 +84,9 @@ RSpec.describe CommandParser do
       end
     end
 
-    context "with 'set 7:30am reminder to do yoga'" do
+    context "with 'set seven thirty am reminder to do yoga' (spoken word form)" do
       it "parses minutes correctly" do
-        result = parser.parse("set 7:30am reminder to do yoga")
+        result = parser.parse("set seven thirty am reminder to do yoga")
 
         expect(result[:intent]).to eq(:reminder)
         expect(result[:params][:hour]).to eq(7)
@@ -163,6 +163,17 @@ RSpec.describe CommandParser do
 
         expect(result[:intent]).to eq(:reminder)
         expect(result[:params][:hour]).to eq(19)
+      end
+    end
+
+    context "with 'set a six thirty pm reminder to test reminders' (word-form time)" do
+      it "parses hour and minute from space-separated spoken digits" do
+        result = parser.parse("set a six thirty pm reminder to test reminders")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(30)
+        expect(result[:params][:message]).to eq("test reminders")
       end
     end
 

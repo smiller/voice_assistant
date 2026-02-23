@@ -7,7 +7,7 @@ class CommandParser
     "forty-five" => 45, "sixty" => 60
   }.freeze
 
-  REMINDER_TIME_AND_MESSAGE = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s+reminder\s+(?:to\s+)?(.+)/i.freeze
+  REMINDER_TIME_AND_MESSAGE = /(\d{1,2})(?:[: ](\d{2}))?\s*(am|pm)\s+reminder\s+(?:to\s+)?(.+)/i.freeze
 
   def parse(transcript)
     normalized = normalize_numbers(transcript)

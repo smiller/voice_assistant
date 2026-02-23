@@ -62,9 +62,9 @@ class CommandResponder
 
   def resolve_reminder_time(params, user)
     Time.use_zone(user.timezone) do
-      today = Time.current
-      time = Time.zone.local(today.year, today.month, today.day, params[:hour], params[:minute])
-      time.past? ? time + 1.day : time
+      now = Time.current
+      time = Time.zone.local(now.year, now.month, now.day, params[:hour], params[:minute])
+      time < now ? time + 1.day : time
     end
   end
 
