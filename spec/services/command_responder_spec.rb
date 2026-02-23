@@ -132,6 +132,17 @@ RSpec.describe CommandResponder do
         end
       end
 
+      it "parses compound spoken minute words and schedules correctly" do
+        # travel_to 6:45 PM EST (UTC 23:45); 6:49 PM is in the future
+        travel_to Time.new(2026, 2, 23, 23, 45, 0, "UTC") do
+          responder.respond(transcript: "set a six forty nine pm reminder to check dinner", user: user)
+
+          reminder = Reminder.last
+          expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 18, 49, 0) }
+          expect(reminder.fire_at).to be_within(1.second).of(expected_fire_at)
+        end
+      end
+
       it "preserves non-zero minutes in the fire_at time" do
         travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
           responder.respond(transcript: "set a nine thirty pm reminder to take medication", user: user)

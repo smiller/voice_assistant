@@ -166,6 +166,17 @@ RSpec.describe CommandParser do
       end
     end
 
+    context "with 'set a six forty nine pm reminder to check dinner' (compound minute words)" do
+      it "composes tens and ones into a two-digit minute" do
+        result = parser.parse("set a six forty nine pm reminder to check dinner")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(49)
+        expect(result[:params][:message]).to eq("check dinner")
+      end
+    end
+
     context "with 'set a six thirty pm reminder to test reminders' (word-form time)" do
       it "parses hour and minute from space-separated spoken digits" do
         result = parser.parse("set a six thirty pm reminder to test reminders")

@@ -42,6 +42,7 @@ class CommandParser
   end
 
   def normalize_numbers(text)
-    WORD_TO_NUMBER.reduce(text) { |t, (word, digit)| t.gsub(/\b#{word}\b/i, digit.to_s) }
+    words_replaced = WORD_TO_NUMBER.reduce(text) { |t, (word, digit)| t.gsub(/\b#{word}\b/i, digit.to_s) }
+    words_replaced.gsub(/\b([1-5]0) ([1-9])\b/) { ($1.to_i + $2.to_i).to_s }
   end
 end
