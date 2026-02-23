@@ -1,9 +1,28 @@
 <%= turbo_stream_from current_user %>
 
-<div data-controller="voice">
-  <h1>Voice Assistant</h1>
-  <p>Hold <kbd>Space</kbd> to speak.</p>
-  <p data-voice-target="status">Ready</p>
+<div class="va-layout" data-controller="voice">
+  <header class="va-nav">
+    <span class="va-nav__brand">Voice Assistant</span>
+    <nav class="va-nav__links">
+      <%= link_to "Settings", edit_settings_path, class: "va-nav__link" %>
+      <%= button_to "Sign out", session_path, method: :delete, class: "va-nav__link va-nav__link--muted" %>
+    </nav>
+  </header>
+
+  <main class="va-main">
+    <div class="va-orb-wrap">
+      <div class="va-orb-ring"></div>
+      <div class="va-orb-ring va-orb-ring--2"></div>
+      <button class="va-orb" aria-label="Hold Space to speak">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1.5 17.93A8.001 8.001 0 0 1 4 11H2a10 10 0 0 0 9 9.95V23h2v-2.05A10 10 0 0 0 22 11h-2a8 8 0 0 1-6.5 7.93z"/>
+        </svg>
+      </button>
+    </div>
+
+    <p class="va-status" data-voice-target="status">Ready</p>
+    <p class="va-hint">Hold <kbd>Space</kbd> to speak</p>
+  </main>
 </div>
 
 <div id="voice_alerts"></div>

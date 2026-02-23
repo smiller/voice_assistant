@@ -144,3 +144,160 @@ body {
 .btn-primary:active {
   opacity: 0.85;
 }
+
+/* ── Voice assistant layout ── */
+
+.va-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* Nav */
+
+.va-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.va-nav__brand {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+
+.va-nav__links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.va-nav__link {
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 5px 10px;
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+}
+
+.va-nav__link:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.va-nav__link--muted {
+  color: var(--text-muted);
+}
+
+/* Main */
+
+.va-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+/* Orb */
+
+.va-orb-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+}
+
+.va-orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1);
+}
+
+.va-orb-ring--2 {
+  animation-delay: 0.4s;
+}
+
+.va-orb {
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.va-orb svg {
+  width: 36px;
+  height: 36px;
+  fill: var(--text-muted);
+  transition: fill 0.2s;
+}
+
+/* Recording state */
+
+@keyframes ripple {
+  0%   { transform: scale(1);    opacity: 0.5; }
+  100% { transform: scale(1.9);  opacity: 0; }
+}
+
+[data-voice-recording-value="true"] .va-orb-ring {
+  animation: ripple 1.4s ease-out infinite;
+}
+
+[data-voice-recording-value="true"] .va-orb {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.06);
+}
+
+[data-voice-recording-value="true"] .va-orb svg {
+  fill: #fff;
+}
+
+/* Status + hint */
+
+.va-status {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  color: var(--text);
+  min-height: 1.5em;
+  text-align: center;
+}
+
+.va-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.va-hint kbd {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 1px 6px;
+}
