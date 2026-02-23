@@ -1,25 +1,47 @@
-<h1>Settings</h1>
+<div class="settings-page">
+  <div class="settings-card">
+    <div class="settings-card__header">
+      <%= link_to voice_commands_path, class: "settings-back" do %>
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+        Back
+      <% end %>
+      <h1 class="settings-card__title">Settings</h1>
+    </div>
 
-<%= form_with model: current_user, url: settings_path do |f| %>
-  <div>
-    <%= f.label :elevenlabs_voice_id, "ElevenLabs Voice ID" %>
-    <%= f.text_field :elevenlabs_voice_id %>
+    <%= form_with model: current_user, url: settings_path do |f| %>
+      <div class="settings-section">
+        <h2 class="settings-section__label">Voice</h2>
+        <div class="field">
+          <%= f.label :elevenlabs_voice_id, "ElevenLabs Voice ID" %>
+          <%= f.text_field :elevenlabs_voice_id, placeholder: "e.g. 21m00Tcm4TlvDq8ikWAM" %>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2 class="settings-section__label">Location</h2>
+        <div class="field-row">
+          <div class="field">
+            <%= f.label :lat, "Latitude" %>
+            <%= f.number_field :lat, step: :any, placeholder: "40.7128" %>
+          </div>
+          <div class="field">
+            <%= f.label :lng, "Longitude" %>
+            <%= f.number_field :lng, step: :any, placeholder: "-74.0060" %>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2 class="settings-section__label">Time</h2>
+        <div class="field">
+          <%= f.label :timezone, "Timezone" %>
+          <%= f.time_zone_select :timezone, nil, {}, class: "field__select" %>
+        </div>
+      </div>
+
+      <%= f.submit "Save settings", class: "btn-primary" %>
+    <% end %>
   </div>
-
-  <div>
-    <%= f.label :lat, "Latitude" %>
-    <%= f.number_field :lat, step: :any %>
-  </div>
-
-  <div>
-    <%= f.label :lng, "Longitude" %>
-    <%= f.number_field :lng, step: :any %>
-  </div>
-
-  <div>
-    <%= f.label :timezone, "Timezone" %>
-    <%= f.time_zone_select :timezone %>
-  </div>
-
-  <%= f.submit "Save settings" %>
-<% end %>
+</div>

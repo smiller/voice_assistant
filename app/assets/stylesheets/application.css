@@ -301,3 +301,95 @@ body {
   font-size: 12px;
   padding: 1px 6px;
 }
+
+/* ── Settings page ── */
+
+.settings-page {
+  display: flex;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 40px 24px;
+}
+
+.settings-card {
+  width: 100%;
+  max-width: 480px;
+}
+
+.settings-card__header {
+  margin-bottom: 32px;
+}
+
+.settings-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-decoration: none;
+  margin-bottom: 20px;
+  transition: color 0.15s;
+}
+
+.settings-back:hover {
+  color: var(--text);
+}
+
+.settings-back svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.settings-card__title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+
+.settings-section {
+  border-top: 1px solid var(--border);
+  padding: 24px 0;
+}
+
+.settings-section__label {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field__select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  padding: 10px 14px;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237a7a8a' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+
+.field__select:focus {
+  border-color: var(--accent);
+}
+
+.field__select option {
+  background: var(--surface);
+}
