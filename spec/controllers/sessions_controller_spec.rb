@@ -11,6 +11,46 @@ RSpec.describe SessionsController, type: :request do
         expect(response).to redirect_to(root_path)
         expect(request.session[:user_id]).to eq(user.id)
       end
+
+      it "saves lat/lng to the user when they are blank and params are provided" do
+        post "/session", params: { email: user.email, password: "s3cr3tpassword",
+                                   lat: "40.7128", lng: "-74.0060" }
+
+        expect(user.reload.lat).to eq(BigDecimal("40.7128"))
+        expect(user.reload.lng).to eq(BigDecimal("-74.0060"))
+      end
+
+      it "does not overwrite existing lat/lng" do
+        user.update!(lat: 1.0, lng: 2.0)
+
+        post "/session", params: { email: user.email, password: "s3cr3tpassword",
+                                   lat: "40.7128", lng: "-74.0060" }
+
+        expect(user.reload.lat).to eq(BigDecimal("1.0"))
+        expect(user.reload.lng).to eq(BigDecimal("2.0"))
+      end
+
+      it "ignores blank lat/lng params" do
+        post "/session", params: { email: user.email, password: "s3cr3tpassword",
+                                   lat: "", lng: "" }
+
+        expect(user.reload.lat).to be_nil
+        expect(user.reload.lng).to be_nil
+      end
+
+      it "does not save when lat is blank but lng is present" do
+        post "/session", params: { email: user.email, password: "s3cr3tpassword",
+                                   lat: "", lng: "-74.0060" }
+
+        expect(user.reload.lng).to be_nil
+      end
+
+      it "does not save when lng is blank but lat is present" do
+        post "/session", params: { email: user.email, password: "s3cr3tpassword",
+                                   lat: "40.7128", lng: "" }
+
+        expect(user.reload.lat).to be_nil
+      end
     end
 
     context "with an incorrect password" do

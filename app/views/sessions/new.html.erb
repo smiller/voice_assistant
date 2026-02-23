@@ -8,7 +8,10 @@
     <h1 class="auth-card__title">Voice Assistant</h1>
     <p class="auth-card__subtitle">Sign in to your account</p>
 
-    <%= form_with url: session_path do |f| %>
+    <%= form_with url: session_path, data: { controller: "location" } do |f| %>
+      <%= f.hidden_field :lat, data: { location_target: "lat" } %>
+      <%= f.hidden_field :lng, data: { location_target: "lng" } %>
+
       <div class="field">
         <%= f.label :email %>
         <%= f.email_field :email, autofocus: true, autocomplete: "email", placeholder: "you@example.com" %>
