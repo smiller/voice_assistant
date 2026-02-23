@@ -53,6 +53,27 @@ RSpec.describe User do
     end
   end
 
+  describe "defaults" do
+    around do |example|
+      original = ENV.fetch("ELEVENLABS_VOICE_ID", nil)
+      ENV["ELEVENLABS_VOICE_ID"] = "default_voice"
+      example.run
+      ENV["ELEVENLABS_VOICE_ID"] = original
+    end
+
+    it "defaults elevenlabs_voice_id to the ELEVENLABS_VOICE_ID env var" do
+      user = build(:user)
+
+      expect(user.elevenlabs_voice_id).to eq("default_voice")
+    end
+
+    it "does not override an explicitly set elevenlabs_voice_id" do
+      user = build(:user, elevenlabs_voice_id: "custom_voice")
+
+      expect(user.elevenlabs_voice_id).to eq("custom_voice")
+    end
+  end
+
   describe "#authenticate" do
     let(:user) { create(:user, password: "correct_horse") }
 
