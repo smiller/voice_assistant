@@ -101,7 +101,9 @@ Spacebar keyup → MediaRecorder stops → audio blob ready
           → Delayed path:   Reminder.create!(user:, message:, fire_at:, recurs_daily:)
                             → ReminderJob.perform_at(fire_at, reminder.id)
                             → confirmation_text (e.g. "Timer set for 10 minutes")
-                            → Reminder.message stores delivery text (e.g. "Timer finished after 10 minutes")
+                            → Reminder.message stores the raw delivery payload:
+                                timers:    "Timer finished after N minutes"
+                                reminders: the message text (e.g. "take medication")
                             → ElevenLabsClient#synthesize(confirmation_text)
                             → send_data audio_bytes, type: "audio/mpeg"
 
@@ -109,7 +111,9 @@ Spacebar keyup → MediaRecorder stops → audio blob ready
 
 ReminderJob#perform(reminder_id)
   → reminder = Reminder.find(reminder_id)
-  → text = build_response_text(reminder)
+  → current_time = Time.current.in_time_zone(reminder.user.timezone).strftime("%-I:%M %p")
+  → text = reminder.timer? ? reminder.message
+                           : "It's #{current_time}. Reminder: #{reminder.message}"
   → audio = ElevenLabsClient#synthesize(text:, voice_id: reminder.user.elevenlabs_voice_id)
   → Store audio bytes with one-time token in Rails.cache (TTL: 5 minutes)
   → Turbo::StreamsChannel.broadcast_append_to(
@@ -609,8 +613,8 @@ Any feature accessible via voice command should also be accessible via a REST JS
 - [ ] "time check" → spoken current time
 - [ ] "sunset" → spoken sunset time for user's location (spoken error if lat/lng still unset after login geolocation attempt)
 - [ ] "set timer for N minutes" (digits or spoken words) → immediate spoken confirmation "Timer set for N minutes"; N minutes later, spoken "Timer finished after N minutes"
-- [ ] "set HH:MM AM/PM reminder to [text]" → spoken confirmation; at that time in user's timezone, spoken "[time]. [text]"
-- [ ] "set daily HH:MM AM/PM reminder to [text]" → fires every day in user's timezone; reschedules after delivery
+- [ ] "set HH:MM AM/PM reminder to [text]" → spoken confirmation; at that time in user's timezone, spoken "It's [time]. Reminder: [text]"
+- [ ] "set daily HH:MM AM/PM reminder to [text]" → fires every day in user's timezone; spoken "It's [time]. Reminder: [text]"; reschedules after delivery
 - [ ] Unrecognized command → spoken "Sorry, I didn't understand that"
 - [ ] Timer/reminder silently dropped if browser tab is closed when job fires
 - [ ] Reminder with `fire_at` in the past → automatically advance to tomorrow, confirm with "Reminder set for 7:00 AM tomorrow to do the thing"
