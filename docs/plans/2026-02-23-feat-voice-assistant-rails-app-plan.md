@@ -101,6 +101,7 @@ Spacebar keyup → MediaRecorder stops → audio blob ready
           → Delayed path:   Reminder.create!(user:, message:, fire_at:, recurs_daily:)
                             → ReminderJob.perform_at(fire_at, reminder.id)
                             → confirmation_text (e.g. "Timer set for 10 minutes")
+                            → Reminder.message stores delivery text (e.g. "Timer finished after 10 minutes")
                             → ElevenLabsClient#synthesize(confirmation_text)
                             → send_data audio_bytes, type: "audio/mpeg"
 
@@ -322,6 +323,8 @@ end
 ```
 
 All paths return `{type: :immediate, audio: <bytes>}` — including scheduled commands which speak a confirmation (e.g. "Timer set for 10 minutes", "Reminder set for 7 AM"). This keeps the controller uniform: always `send_data` audio.
+
+For timers, the `Reminder.message` stored for later delivery differs from the confirmation text: confirmation says "Timer set for N minutes"; the delivered alert says "Timer finished after N minutes".
 
 ---
 
@@ -605,7 +608,7 @@ Any feature accessible via voice command should also be accessible via a REST JS
 - [ ] Recording auto-stops after 15 seconds
 - [ ] "time check" → spoken current time
 - [ ] "sunset" → spoken sunset time for user's location (spoken error if lat/lng still unset after login geolocation attempt)
-- [ ] "set timer for N minutes" (digits or spoken words) → immediate spoken confirmation "Timer set for N minutes"; N minutes later, spoken "Timer N minutes elapsed"
+- [ ] "set timer for N minutes" (digits or spoken words) → immediate spoken confirmation "Timer set for N minutes"; N minutes later, spoken "Timer finished after N minutes"
 - [ ] "set HH:MM AM/PM reminder to [text]" → spoken confirmation; at that time in user's timezone, spoken "[time]. [text]"
 - [ ] "set daily HH:MM AM/PM reminder to [text]" → fires every day in user's timezone; reschedules after delivery
 - [ ] Unrecognized command → spoken "Sorry, I didn't understand that"
