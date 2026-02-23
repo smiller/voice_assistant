@@ -188,6 +188,64 @@ RSpec.describe CommandParser do
       end
     end
 
+    context "with spoken minute words that require dictionary entries" do
+      it "parses 'six fifty pm' as 6:50 PM" do
+        result = parser.parse("set a six fifty pm reminder to wrap up")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(50)
+      end
+
+      it "parses 'six fifty five pm' as 6:55 PM" do
+        result = parser.parse("set a six fifty five pm reminder to leave")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(55)
+      end
+
+      it "parses 'six sixteen pm' as 6:16 PM" do
+        result = parser.parse("set a six sixteen pm reminder to check in")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(16)
+      end
+
+      it "parses 'six seventeen pm' as 6:17 PM" do
+        result = parser.parse("set a six seventeen pm reminder to check in")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(17)
+      end
+
+      it "parses 'six eighteen pm' as 6:18 PM" do
+        result = parser.parse("set a six eighteen pm reminder to check in")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(18)
+      end
+
+      it "parses 'six nineteen pm' as 6:19 PM" do
+        result = parser.parse("set a six nineteen pm reminder to check in")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(19)
+      end
+    end
+
+    context "with single-digit spoken minutes" do
+      it "parses 'six oh five pm' as 6:05 PM (Deepgram oh-prefix form)" do
+        result = parser.parse("set a six oh five pm reminder to take a pill")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(5)
+      end
+
+      it "parses 'six five pm' as 6:05 PM (no oh-prefix)" do
+        result = parser.parse("set a six five pm reminder to take a pill")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(5)
+      end
+
+      it "parses 'six one pm' as 6:01 PM" do
+        result = parser.parse("set a six one pm reminder to leave")
+        expect(result[:params][:hour]).to eq(18)
+        expect(result[:params][:minute]).to eq(1)
+      end
+    end
+
     context "with trailing whitespace in the reminder message" do
       it "strips the message" do
         result = parser.parse("set 7am reminder to write morning pages  ")

@@ -1,13 +1,15 @@
 class CommandParser
   WORD_TO_NUMBER = {
+    "oh" => 0,
     "one" => 1, "two" => 2, "three" => 3, "four" => 4, "five" => 5,
     "six" => 6, "seven" => 7, "eight" => 8, "nine" => 9, "ten" => 10,
     "eleven" => 11, "twelve" => 12, "thirteen" => 13, "fourteen" => 14,
-    "fifteen" => 15, "twenty" => 20, "thirty" => 30, "forty" => 40,
-    "forty-five" => 45, "sixty" => 60
+    "fifteen" => 15, "sixteen" => 16, "seventeen" => 17, "eighteen" => 18,
+    "nineteen" => 19, "twenty" => 20, "thirty" => 30, "forty" => 40,
+    "forty-five" => 45, "fifty" => 50, "sixty" => 60
   }.freeze
 
-  REMINDER_TIME_AND_MESSAGE = /(\d{1,2})(?:[: ](\d{2}))?\s*(am|pm)\s+reminder\s+(?:to\s+)?(.+)/i.freeze
+  REMINDER_TIME_AND_MESSAGE = /(\d{1,2})(?:[: ](\d{1,2}))?\s*(am|pm)\s+reminder\s+(?:to\s+)?(.+)/i.freeze
 
   def parse(transcript)
     normalized = normalize_numbers(transcript)
@@ -43,6 +45,7 @@ class CommandParser
 
   def normalize_numbers(text)
     words_replaced = WORD_TO_NUMBER.reduce(text) { |t, (word, digit)| t.gsub(/\b#{word}\b/i, digit.to_s) }
-    words_replaced.gsub(/\b([1-5]0) ([1-9])\b/) { ($1.to_i + $2.to_i).to_s }
+    oh_collapsed    = words_replaced.gsub(/\b0 ([1-9])\b/) { "0#{$1}" }
+    oh_collapsed.gsub(/\b([1-5]0) ([1-9])\b/) { ($1.to_i + $2.to_i).to_s }
   end
 end
