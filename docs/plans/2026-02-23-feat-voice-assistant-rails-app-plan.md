@@ -561,7 +561,7 @@ ReminderJob#perform (async, Sidekiq worker)
 | ElevenLabs API down (job) | `ReminderJob#perform` | Sidekiq retries (3x default); reminder stays `pending` |
 | No voice ID set | `ElevenLabsClient#synthesize` | `after_initialize` on User defaults to `ENV["ELEVENLABS_VOICE_ID"]`; settings allow per-user override |
 | Tab closed at alert time | `Turbo::StreamsChannel.broadcast_*` | Action Cable silently drops if no subscriber — per brainstorm decision |
-| Past `fire_at` on reminder | `CommandParser` / `CommandResponder` | Detect in responder; return immediate error: "That time has already passed today" |
+| Past `fire_at` on reminder | `CommandResponder` | If the resolved time has already passed today, advance `fire_at` by one day and confirm normally — e.g. "Reminder set for 7:00 AM tomorrow to do the thing" |
 | Cache miss on audio token | `VoiceAlertsController#show` | Return 404; Stimulus controller logs warning, removes alert element |
 
 ### State Lifecycle Risks
@@ -599,7 +599,7 @@ Any feature accessible via voice command should also be accessible via a REST JS
 - [ ] "set daily HH:MM AM/PM reminder to [text]" → fires every day in user's timezone; reschedules after delivery
 - [ ] Unrecognized command → spoken "Sorry, I didn't understand that"
 - [ ] Timer/reminder silently dropped if browser tab is closed when job fires
-- [ ] Reminder with `fire_at` in the past → spoken "That time has already passed today"
+- [ ] Reminder with `fire_at` in the past → automatically advance to tomorrow, confirm with "Reminder set for 7:00 AM tomorrow to do the thing"
 - [ ] All voice responses use the user's stored ElevenLabs voice ID
 - [ ] New user defaults to `ENV["ELEVENLABS_VOICE_ID"]`; can override per-user in settings
 
