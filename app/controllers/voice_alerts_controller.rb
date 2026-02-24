@@ -1,4 +1,6 @@
 class VoiceAlertsController < ApplicationController
+  before_action :require_authentication
+
   def show
     audio = Rails.cache.read("reminder_audio_#{params[:id]}")
     return head :not_found unless audio

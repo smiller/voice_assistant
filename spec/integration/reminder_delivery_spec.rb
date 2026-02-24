@@ -13,6 +13,7 @@ RSpec.describe "Reminder delivery", type: :request do
     )
     allow(Turbo::StreamsChannel).to receive(:broadcast_append_to)
     allow(SecureRandom).to receive(:hex).and_return("testtoken")
+    post "/session", params: { email: user.email, password: "s3cr3tpassword" }
   end
 
   it "job fires and audio is retrievable via GET /voice_alerts/:token" do

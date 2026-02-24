@@ -26,7 +26,6 @@ export default class extends Controller {
     try {
       const resp = await fetch("/config")
       const data = await resp.json()
-      this.deepgramKey = data.deepgram_key
       this.voiceId = data.voice_id
     } catch (e) {
       this.updateStatus("Failed to load config")

@@ -13,15 +13,17 @@ class SessionsController < ApplicationController
     end
   end
 
+  def destroy
+    session.delete(:user_id)
+    redirect_to login_path
+  end
+
+  private
+
   def save_location(user)
     return if params[:lat].blank? || params[:lng].blank?
     return if user.lat.present? || user.lng.present?
 
     user.update!(lat: params[:lat], lng: params[:lng])
-  end
-
-  def destroy
-    session.delete(:user_id)
-    redirect_to login_path
   end
 end

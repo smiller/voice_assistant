@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe VoiceAlertsController, type: :request do
+  let(:user) { create(:user) }
   let(:audio_bytes) { "\xFF\xFB\x90\x00".b }
   let(:token) { "abc123" }
   let(:cache_key) { "reminder_audio_#{token}" }
@@ -10,8 +11,22 @@ RSpec.describe VoiceAlertsController, type: :request do
     allow(Rails).to receive(:cache).and_return(cache_store)
   end
 
+  def log_in
+    post "/session", params: { email: user.email, password: "s3cr3tpassword" }
+  end
+
   describe "GET /voice_alerts/:id" do
+    context "when not authenticated" do
+      it "redirects to login" do
+        get "/voice_alerts/#{token}"
+
+        expect(response).to redirect_to(login_path)
+      end
+    end
+
     context "when token is not in cache" do
+      before { log_in }
+
       it "returns 404" do
         get "/voice_alerts/#{token}"
 
@@ -20,7 +35,10 @@ RSpec.describe VoiceAlertsController, type: :request do
     end
 
     context "when token is in cache" do
-      before { cache_store.write(cache_key, audio_bytes) }
+      before do
+        log_in
+        cache_store.write(cache_key, audio_bytes)
+      end
 
       it "returns the audio bytes with audio/mpeg content type and inline disposition" do
         get "/voice_alerts/#{token}"

@@ -17,21 +17,22 @@ RSpec.describe ConfigController, type: :request do
     end
 
     context "when authenticated" do
-      before do
-        log_in
-        ENV["DEEPGRAM_API_KEY"] = "test_dg_key"
-      end
+      before { log_in }
 
-      after { ENV.delete("DEEPGRAM_API_KEY") }
-
-      it "returns JSON with deepgram_key and voice_id" do
+      it "returns JSON with voice_id" do
         get "/config"
 
         expect(response).to have_http_status(:ok)
         expect(response.content_type).to include("application/json")
         body = JSON.parse(response.body)
-        expect(body["deepgram_key"]).to eq("test_dg_key")
         expect(body["voice_id"]).to eq("voice123")
+      end
+
+      it "does not expose deepgram_key" do
+        get "/config"
+
+        body = JSON.parse(response.body)
+        expect(body).not_to have_key("deepgram_key")
       end
     end
   end
