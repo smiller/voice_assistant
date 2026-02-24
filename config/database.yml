@@ -95,8 +95,7 @@ production:
     database: voice_assistant_production_cache
     migrations_paths: db/cache_migrate
   queue:
-    <<: *primary_production
-    database: voice_assistant_production_queue
+    url: <%= ENV.fetch("QUEUE_DATABASE_URL", ENV["DATABASE_URL"]) %>
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
