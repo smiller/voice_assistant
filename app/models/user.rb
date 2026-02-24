@@ -1,5 +1,6 @@
 class User < ApplicationRecord
   has_secure_password
+  has_many :reminders, dependent: :destroy
 
   after_initialize :set_defaults, if: :new_record?
 

@@ -12,6 +12,7 @@ RSpec.describe ReminderJob do
     allow(ElevenLabsClient).to receive(:new).and_return(tts_client)
     allow(tts_client).to receive(:synthesize).and_return(audio_bytes)
     allow(Turbo::StreamsChannel).to receive(:broadcast_append_to)
+    allow(Turbo::StreamsChannel).to receive(:broadcast_remove_to)
     allow(Rails).to receive(:cache).and_return(cache_store)
   end
 
@@ -99,6 +100,13 @@ RSpec.describe ReminderJob do
           described_class.perform_now(reminder.id)
         }.not_to have_enqueued_job(described_class)
       end
+
+      it "broadcasts a Turbo Stream remove for the reminder row" do
+        described_class.perform_now(reminder.id)
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_remove_to)
+          .with(user, target: "reminder_#{reminder.id}")
+      end
     end
 
     context "when reminder is a daily_reminder kind" do
@@ -156,6 +164,16 @@ RSpec.describe ReminderJob do
           expect(tomorrow.kind).to eq(reminder.kind)
           expect(tomorrow.user).to eq(user)
           expect(tomorrow.recurs_daily).to be(true)
+        end
+      end
+
+      it "broadcasts an append for the rescheduled daily reminder" do
+        travel_to Time.new(2026, 2, 23, 7, 0, 0, "UTC") do
+          described_class.perform_now(reminder.id)
+
+          expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to)
+            .with(user, target: "daily_reminders", partial: "reminders/reminder",
+                  locals: { reminder: instance_of(Reminder) })
         end
       end
     end

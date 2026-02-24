@@ -1,7 +1,7 @@
 ---
 title: "feat: Display Pending Timers and Reminders"
 type: feat
-status: active
+status: completed
 date: 2026-02-24
 origin: docs/brainstorms/2026-02-24-pending-timers-reminders-display-brainstorm.md
 ---
@@ -67,21 +67,21 @@ does not hit the database per row. For broadcast-rendered rows (one at a time), 
 
 ## Acceptance Criteria
 
-- [ ] `GET /voice_commands` assigns `@timers`, `@reminders`, `@daily_reminders` scoped to
+- [x] `GET /voice_commands` assigns `@timers`, `@reminders`, `@daily_reminders` scoped to
   `current_user.reminders.pending`, ordered by `fire_at`
-- [ ] Panel renders all three sections; each shows placeholder text when empty
-- [ ] Speaking a timer appends a live countdown row to `#timers`
-- [ ] Speaking a reminder appends a row to `#reminders`
-- [ ] Speaking a daily reminder appends a row to `#daily_reminders`
-- [ ] When a reminder fires, its row is removed from the panel
-- [ ] When a daily reminder fires, the rescheduled occurrence appears live in
+- [x] Panel renders all three sections; each shows placeholder text when empty
+- [x] Speaking a timer appends a live countdown row to `#timers`
+- [x] Speaking a reminder appends a row to `#reminders`
+- [x] Speaking a daily reminder appends a row to `#daily_reminders`
+- [x] When a reminder fires, its row is removed from the panel
+- [x] When a daily reminder fires, the rescheduled occurrence appears live in
   `#daily_reminders`
-- [ ] Timer rows show "Started H:MM AM/PM · N min timer" + live "M:SS remaining"
-- [ ] Countdown reaches zero → row hidden client-side; Turbo remove arrives as a no-op
-- [ ] `clearInterval` called in Stimulus `disconnect()` — no timer leak on DOM removal
-- [ ] Reminder rows show "H:MM AM/PM — message"
-- [ ] Empty state placeholder hides when items are present, reappears when list empties
-- [ ] All new code passes RuboCop and mutant with no surviving mutants
+- [x] Timer rows show "Started H:MM AM/PM · N min timer" + live "M:SS remaining"
+- [x] Countdown reaches zero → row hidden client-side; Turbo remove arrives as a no-op
+- [x] `clearInterval` called in Stimulus `disconnect()` — no timer leak on DOM removal
+- [x] Reminder rows show "H:MM AM/PM — message"
+- [x] Empty state placeholder hides when items are present, reappears when list empties
+- [x] All new code passes RuboCop and mutant with no surviving mutants
 
 ## Implementation Steps
 

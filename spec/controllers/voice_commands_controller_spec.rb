@@ -27,6 +27,76 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         expect(response).to have_http_status(:ok)
       end
+
+      it "renders pending timers ordered by fire_at" do
+        later  = create(:reminder, :timer, user: user, fire_at: 2.hours.from_now)
+        sooner = create(:reminder, :timer, user: user, fire_at: 1.hour.from_now)
+
+        get "/voice_commands"
+
+        expect(response.body.index("reminder_#{sooner.id}"))
+          .to be < response.body.index("reminder_#{later.id}")
+      end
+
+      it "renders pending reminders ordered by fire_at" do
+        later  = create(:reminder, user: user, fire_at: 2.hours.from_now)
+        sooner = create(:reminder, user: user, fire_at: 1.hour.from_now)
+
+        get "/voice_commands"
+
+        expect(response.body.index("reminder_#{sooner.id}"))
+          .to be < response.body.index("reminder_#{later.id}")
+      end
+
+      it "renders pending daily_reminders ordered by fire_at" do
+        later  = create(:reminder, :daily, user: user, fire_at: 2.hours.from_now)
+        sooner = create(:reminder, :daily, user: user, fire_at: 1.hour.from_now)
+
+        get "/voice_commands"
+
+        expect(response.body.index("reminder_#{sooner.id}"))
+          .to be < response.body.index("reminder_#{later.id}")
+      end
+
+      it "renders timers exactly once (in the timers section, not reminders)" do
+        timer = create(:reminder, :timer, user: user)
+
+        get "/voice_commands"
+
+        expect(response.body.scan("reminder_#{timer.id}").length).to eq(1)
+      end
+
+      it "renders reminders exactly once (in the reminders section, not timers)" do
+        reminder = create(:reminder, user: user)
+
+        get "/voice_commands"
+
+        expect(response.body.scan("reminder_#{reminder.id}").length).to eq(1)
+      end
+
+      it "renders daily reminders exactly once (in the daily_reminders section, not reminders)" do
+        daily = create(:reminder, :daily, user: user)
+
+        get "/voice_commands"
+
+        expect(response.body.scan("reminder_#{daily.id}").length).to eq(1)
+      end
+
+      it "does not render delivered reminders" do
+        delivered = create(:reminder, user: user, status: "delivered")
+
+        get "/voice_commands"
+
+        expect(response.body).not_to include("reminder_#{delivered.id}")
+      end
+
+      it "does not render another user's reminders" do
+        other = create(:reminder)
+
+        get "/voice_commands"
+
+        expect(response.body).not_to include("reminder_#{other.id}")
+      end
     end
   end
 

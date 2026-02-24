@@ -1,4 +1,6 @@
 class ReminderJob < ApplicationJob
+  include ActionView::RecordIdentifier
+
   queue_as :default
   discard_on StandardError
 
@@ -16,6 +18,7 @@ class ReminderJob < ApplicationJob
       locals: { token: token }
     )
     reminder.delivered!
+    Turbo::StreamsChannel.broadcast_remove_to(reminder.user, target: dom_id(reminder))
 
     return unless reminder.recurs_daily?
 
@@ -25,6 +28,12 @@ class ReminderJob < ApplicationJob
       fire_at: next_fire_at, recurs_daily: true
     )
     ReminderJob.set(wait_until: next_fire_at).perform_later(new_reminder.id)
+    Turbo::StreamsChannel.broadcast_append_to(
+      new_reminder.user,
+      target: "daily_reminders",
+      partial: "reminders/reminder",
+      locals: { reminder: new_reminder }
+    )
   end
 
   private

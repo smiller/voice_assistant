@@ -1,0 +1,17 @@
+<li id="<%= dom_id(reminder) %>">
+  <% if reminder.timer? %>
+    <div data-controller="countdown"
+         data-countdown-fire-at-value="<%= reminder.fire_at.iso8601 %>">
+      <span>
+        Started <%= reminder.created_at.in_time_zone(reminder.user.timezone).strftime("%-I:%M %p") %>
+        · <%= ((reminder.fire_at - reminder.created_at) / 60).round %> min timer
+      </span>
+      <span data-countdown-target="display"></span>
+    </div>
+  <% else %>
+    <span>
+      <%= reminder.fire_at.in_time_zone(reminder.user.timezone).strftime("%-I:%M %p") %>
+      — <%= reminder.message %>
+    </span>
+  <% end %>
+</li>

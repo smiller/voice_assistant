@@ -325,5 +325,53 @@ RSpec.describe CommandResponder do
         end
       end
     end
+
+    context "broadcast on schedule" do
+      let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
+
+      before { allow(Turbo::StreamsChannel).to receive(:broadcast_append_to) }
+
+      it "broadcasts a timer append to the timers target" do
+        travel_to Time.new(2026, 2, 23, 14, 0, 0, "UTC") do
+          responder.respond(command: { intent: :timer, params: { minutes: 5 } }, user: user)
+
+          expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to)
+            .with(user, target: "timers", partial: "reminders/reminder",
+                  locals: { reminder: instance_of(Reminder) })
+        end
+      end
+
+      it "broadcasts a reminder append to the reminders target" do
+        travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
+          responder.respond(
+            command: { intent: :reminder, params: { hour: 21, minute: 0, message: "take medication" } },
+            user: user
+          )
+
+          expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to)
+            .with(user, target: "reminders", partial: "reminders/reminder",
+                  locals: { reminder: instance_of(Reminder) })
+        end
+      end
+
+      it "broadcasts a daily reminder append to the daily_reminders target" do
+        travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
+          responder.respond(
+            command: { intent: :daily_reminder, params: { hour: 7, minute: 0, message: "exercise" } },
+            user: user
+          )
+
+          expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to)
+            .with(user, target: "daily_reminders", partial: "reminders/reminder",
+                  locals: { reminder: instance_of(Reminder) })
+        end
+      end
+
+      it "does not broadcast for non-scheduling commands" do
+        responder.respond(command: { intent: :time_check, params: {} }, user: user)
+
+        expect(Turbo::StreamsChannel).not_to have_received(:broadcast_append_to)
+      end
+    end
   end
 end

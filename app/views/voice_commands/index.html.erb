@@ -26,3 +26,23 @@
 </div>
 
 <div id="voice_alerts"></div>
+
+<section class="va-pending">
+  <h2>Timers</h2>
+  <ul id="timers">
+    <%= render @timers %>
+    <li class="empty-state">No active timers</li>
+  </ul>
+
+  <h2>Reminders</h2>
+  <ul id="reminders">
+    <%= render @reminders %>
+    <li class="empty-state">No reminders</li>
+  </ul>
+
+  <h3>Daily</h3>
+  <ul id="daily_reminders">
+    <%= render @daily_reminders %>
+    <li class="empty-state">No daily reminders</li>
+  </ul>
+</section>

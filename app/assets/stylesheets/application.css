@@ -393,3 +393,62 @@ body {
 .field__select option {
   background: var(--surface);
 }
+
+/* ── Pending timers & reminders panel ── */
+
+.va-pending {
+  padding: 24px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.va-pending h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  margin-top: 20px;
+}
+
+.va-pending h2:first-child {
+  margin-top: 0;
+}
+
+.va-pending h3 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+.va-pending ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.va-pending li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.va-pending .empty-state {
+  color: var(--text-muted);
+  font-size: 13px;
+  border-style: dashed;
+}
+
+/* Hide empty-state placeholder when real items are present */
+.va-pending ul:has(li:not(.empty-state)) .empty-state {
+  display: none;
+}
