@@ -8,10 +8,12 @@ RSpec.describe ElevenLabsClient do
   let(:api_url) { "https://api.elevenlabs.io/v1/text-to-speech/#{voice_id}" }
   let(:audio_bytes) { "\xFF\xFB\x90\x00" }
 
+  before { ENV["ELEVENLABS_API_KEY"] = "test_api_key" }
+  after  { ENV.delete("ELEVENLABS_API_KEY") }
+
   describe "#synthesize" do
     context "when the API responds successfully" do
       before do
-        ENV["ELEVENLABS_API_KEY"] = "test_api_key"
         stub_request(:post, api_url)
           .with(
             headers: {
@@ -19,12 +21,10 @@ RSpec.describe ElevenLabsClient do
               "Content-Type" => "application/json",
               "Accept" => "audio/mpeg"
             },
-            body: { text: text, model_id: "eleven_multilingual_v2" }.to_json
+            body: { text: text, model_id: ElevenLabsClient::MODEL_ID }.to_json
           )
           .to_return(status: 200, body: audio_bytes, headers: { "Content-Type" => "audio/mpeg" })
       end
-
-      after { ENV.delete("ELEVENLABS_API_KEY") }
 
       it "returns audio bytes" do
         result = client.synthesize(text: text, voice_id: voice_id)

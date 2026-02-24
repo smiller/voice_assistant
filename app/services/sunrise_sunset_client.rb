@@ -8,10 +8,12 @@ class SunriseSunsetClient
   BASE_URL = "https://api.sunrise-sunset.org/json"
 
   def sunset_time(lat:, lng:)
-    data = fetch(lat:, lng:)
-    raise Error unless data["status"] == "OK"
+    Rails.cache.fetch("sunset/#{lat}/#{lng}/#{Date.today}", expires_in: 24.hours) do
+      data = fetch(lat:, lng:)
+      raise Error unless data["status"] == "OK"
 
-    Time.parse(data["results"]["sunset"])
+      Time.parse(data["results"]["sunset"])
+    end
   rescue Error
     raise
   rescue StandardError

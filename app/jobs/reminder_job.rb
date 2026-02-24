@@ -1,5 +1,6 @@
 class ReminderJob < ApplicationJob
   queue_as :default
+  discard_on StandardError
 
   def perform(reminder_id)
     reminder = Reminder.find_by(id: reminder_id)

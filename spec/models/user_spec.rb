@@ -53,6 +53,48 @@ RSpec.describe User do
     end
   end
 
+  describe "lat/lng range validation" do
+    it "is valid with nil lat and lng" do
+      user = build(:user, lat: nil, lng: nil)
+
+      expect(user).to be_valid
+    end
+
+    it "is invalid with lat below -90" do
+      user = build(:user, lat: -91)
+
+      expect(user).not_to be_valid
+      expect(user.errors[:lat]).to be_present
+    end
+
+    it "is invalid with lat above 90" do
+      user = build(:user, lat: 91)
+
+      expect(user).not_to be_valid
+      expect(user.errors[:lat]).to be_present
+    end
+
+    it "is invalid with lng below -180" do
+      user = build(:user, lng: -181)
+
+      expect(user).not_to be_valid
+      expect(user.errors[:lng]).to be_present
+    end
+
+    it "is invalid with lng above 180" do
+      user = build(:user, lng: 181)
+
+      expect(user).not_to be_valid
+      expect(user.errors[:lng]).to be_present
+    end
+
+    it "is valid with boundary values lat: 90, lng: 180" do
+      user = build(:user, lat: 90, lng: 180)
+
+      expect(user).to be_valid
+    end
+  end
+
   describe "defaults" do
     around do |example|
       original = ENV.fetch("ELEVENLABS_VOICE_ID", nil)

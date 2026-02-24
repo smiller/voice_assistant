@@ -43,6 +43,14 @@ RSpec.describe ReminderJob do
       end
     end
 
+    context "when ElevenLabsClient raises an error" do
+      before { allow(tts_client).to receive(:synthesize).and_raise(ElevenLabsClient::Error) }
+
+      it "discards the job without raising" do
+        expect { described_class.perform_now(reminder.id) }.not_to raise_error
+      end
+    end
+
     context "when reminder is pending" do
       it "synthesizes audio prefixed with the current time in the user's timezone" do
         travel_to Time.new(2026, 2, 23, 21, 0, 0, "UTC") do  # 4:00 PM ET

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_24_013952) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_24_020717) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -51,13 +51,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_24_013952) do
     t.string "status", default: "pending", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.bigint "voice_command_id"
     t.index ["status", "fire_at"], name: "index_reminders_on_status_and_fire_at"
     t.index ["user_id"], name: "index_reminders_on_user_id"
-    t.index ["voice_command_id"], name: "index_reminders_on_voice_command_id"
   end
 
   create_table "users", force: :cascade do |t|
+    t.string "api_token"
     t.datetime "created_at", null: false
     t.string "elevenlabs_voice_id"
     t.string "email", null: false
@@ -66,6 +65,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_24_013952) do
     t.string "password_digest"
     t.string "timezone"
     t.datetime "updated_at", null: false
+    t.index ["api_token"], name: "index_users_on_api_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
@@ -84,6 +84,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_24_013952) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "reminders", "users"
-  add_foreign_key "reminders", "voice_commands"
   add_foreign_key "voice_commands", "users"
 end

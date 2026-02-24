@@ -7,12 +7,6 @@ RSpec.describe Reminder do
 
       expect(reminder.user).to be_a(User)
     end
-
-    it "belongs to a voice_command optionally" do
-      reminder = build(:reminder, voice_command: nil)
-
-      expect(reminder).to be_valid
-    end
   end
 
   describe "validations" do

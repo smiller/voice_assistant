@@ -10,5 +10,11 @@ Rails.application.routes.draw do
   resource :settings, only: [ :edit, :update ]
   get "config" => "config#show", as: :config
 
+  namespace :api do
+    namespace :v1 do
+      resources :text_commands, only: [ :create ]
+    end
+  end
+
   root "voice_commands#index"
 end

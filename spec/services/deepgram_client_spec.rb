@@ -6,10 +6,12 @@ RSpec.describe DeepgramClient do
   let(:audio) { "\x00\x01\x02\x03" }
   let(:api_url) { "https://api.deepgram.com/v1/listen" }
 
+  before { ENV["DEEPGRAM_API_KEY"] = "test_dg_key" }
+  after  { ENV.delete("DEEPGRAM_API_KEY") }
+
   describe "#transcribe" do
     context "when the API responds successfully" do
       before do
-        ENV["DEEPGRAM_API_KEY"] = "test_dg_key"
         stub_request(:post, api_url)
           .with(
             headers: { "Authorization" => "Token test_dg_key", "Content-Type" => "audio/webm" },
@@ -31,8 +33,6 @@ RSpec.describe DeepgramClient do
             headers: { "Content-Type" => "application/json" }
           )
       end
-
-      after { ENV.delete("DEEPGRAM_API_KEY") }
 
       it "returns the transcript string" do
         result = client.transcribe(audio: audio)

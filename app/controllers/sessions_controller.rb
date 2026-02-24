@@ -24,6 +24,6 @@ class SessionsController < ApplicationController
     return if params[:lat].blank? || params[:lng].blank?
     return if user.lat.present? || user.lng.present?
 
-    user.update!(lat: params[:lat], lng: params[:lng])
+    user.update(lat: params[:lat], lng: params[:lng])
   end
 end

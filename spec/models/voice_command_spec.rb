@@ -44,7 +44,7 @@ RSpec.describe VoiceCommand do
     end
 
     it "defines status values" do
-      expect(VoiceCommand.statuses.keys).to match_array(%w[received processed scheduled failed])
+      expect(VoiceCommand.statuses.keys).to match_array(%w[received processed])
     end
   end
 end

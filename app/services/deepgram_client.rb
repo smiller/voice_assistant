@@ -9,7 +9,7 @@ class DeepgramClient
   def transcribe(audio:)
     uri = URI(BASE_URL)
     req = Net::HTTP::Post.new(uri)
-    req["Authorization"] = "Token #{ENV["DEEPGRAM_API_KEY"]}"
+    req["Authorization"] = "Token #{ENV.fetch("DEEPGRAM_API_KEY")}"
     req["Content-Type"] = "audio/webm"
     req.body = audio
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
@@ -17,8 +17,6 @@ class DeepgramClient
 
     data = JSON.parse(response.body)
     data.dig("results", "channels", 0, "alternatives", 0, "transcript")
-  rescue Error
-    raise
   rescue StandardError
     raise Error
   end

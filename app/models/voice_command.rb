@@ -12,9 +12,7 @@ class VoiceCommand < ApplicationRecord
 
   enum :status, {
     received: "received",
-    processed: "processed",
-    scheduled: "scheduled",
-    failed: "failed"
+    processed: "processed"
   }
 
   validates :transcript, presence: true
