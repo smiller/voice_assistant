@@ -1,6 +1,6 @@
 class VoiceCommandsController < AuthenticatedController
   def index
-    pending = current_user.reminders.pending.includes(:user).order(:fire_at)
+    pending = current_user.reminders.pending.where("fire_at > ?", Time.current).includes(:user).order(:fire_at)
     @timers          = pending.timer
     @reminders       = pending.reminder
     @daily_reminders = pending.daily_reminder

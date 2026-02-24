@@ -6,12 +6,18 @@
         Started <%= reminder.created_at.in_time_zone(reminder.user.timezone).strftime("%-I:%M %p") %>
         · <%= ((reminder.fire_at - reminder.created_at) / 60).round %> min timer
       </span>
-      <span data-countdown-target="display"></span>
+      · <span data-countdown-target="display"></span>
     </div>
   <% else %>
+    <% local_fire_at = reminder.fire_at.in_time_zone(reminder.user.timezone) %>
+    <% today = Time.current.in_time_zone(reminder.user.timezone).to_date %>
+    <% day_label = case local_fire_at.to_date
+                   when today       then "today"
+                   when today + 1   then "tomorrow"
+                   else               local_fire_at.strftime("%b %-d")
+                   end %>
     <span>
-      <%= reminder.fire_at.in_time_zone(reminder.user.timezone).strftime("%-I:%M %p") %>
-      — <%= reminder.message %>
+      <%= local_fire_at.strftime("%-I:%M %p") %> <%= day_label %> — <%= reminder.message %>
     </span>
   <% end %>
 </li>

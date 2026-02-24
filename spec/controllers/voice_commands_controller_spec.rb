@@ -97,6 +97,14 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         expect(response.body).not_to include("reminder_#{other.id}")
       end
+
+      it "does not render reminders whose fire_at is in the past" do
+        past = create(:reminder, user: user, fire_at: 1.minute.ago)
+
+        get "/voice_commands"
+
+        expect(response.body).not_to include("reminder_#{past.id}")
+      end
     end
   end
 
