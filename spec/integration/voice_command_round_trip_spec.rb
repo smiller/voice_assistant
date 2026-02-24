@@ -5,7 +5,7 @@ RSpec.describe "Voice command round trip", type: :request do
   let(:audio_bytes) { "\xFF\xFB\x90\x00response".b }
   let(:tts) { instance_double(ElevenLabsClient, synthesize: audio_bytes) }
   let(:audio_file) do
-    Rack::Test::UploadedFile.new(StringIO.new("fake audio".b), "audio/webm", original_filename: "rec.webm")
+    Rack::Test::UploadedFile.new(StringIO.new(("fake audio" + "x" * 1.kilobyte).b), "audio/webm", original_filename: "rec.webm")
   end
 
   before do

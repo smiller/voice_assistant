@@ -5,6 +5,7 @@ class VoiceCommandsController < AuthenticatedController
   def create
     audio = params[:audio]
     return head :bad_request unless audio
+    return head :unprocessable_entity if audio.size < 1.kilobyte
     return head :unprocessable_entity if audio.size > 1.megabyte
     return head :unprocessable_entity unless audio.content_type&.start_with?("audio/")
 

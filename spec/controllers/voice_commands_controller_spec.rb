@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe VoiceCommandsController, type: :request do
   let(:user) { create(:user) }
-  let(:audio_data) { "\xFF\xFB\x90\x00audio content".b }
+  let(:audio_data) { ("\xFF\xFB\x90\x00" + "x" * 1.kilobyte).b }
   let(:audio_file) { Rack::Test::UploadedFile.new(StringIO.new(audio_data), "audio/webm", original_filename: "recording.webm") }
   let(:audio_bytes) { "\xFF\xFB\x90\x00response audio" }
 
@@ -102,6 +102,26 @@ RSpec.describe VoiceCommandsController, type: :request do
         expect(response).to have_http_status(:bad_request)
       end
 
+      it "returns 422 when audio is smaller than 1 KB" do
+        tiny = Rack::Test::UploadedFile.new(
+          StringIO.new("x" * (1.kilobyte - 1)), "audio/webm", original_filename: "tiny.webm"
+        )
+
+        post "/voice_commands", params: { audio: tiny }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "accepts audio that is exactly 1 KB" do
+        exactly_1kb = Rack::Test::UploadedFile.new(
+          StringIO.new("x" * 1.kilobyte), "audio/webm", original_filename: "min.webm"
+        )
+
+        post "/voice_commands", params: { audio: exactly_1kb }
+
+        expect(response).not_to have_http_status(:unprocessable_entity)
+      end
+
       it "returns 422 when audio exceeds 1 MB" do
         oversized = Rack::Test::UploadedFile.new(
           StringIO.new("x" * (1.megabyte + 1)), "audio/webm", original_filename: "big.webm"
@@ -114,7 +134,7 @@ RSpec.describe VoiceCommandsController, type: :request do
 
       it "returns 422 when audio has a non-audio MIME type" do
         bad_type = Rack::Test::UploadedFile.new(
-          StringIO.new("data"), "text/plain", original_filename: "file.txt"
+          StringIO.new("x" * 1.kilobyte), "text/plain", original_filename: "file.txt"
         )
 
         post "/voice_commands", params: { audio: bad_type }
