@@ -135,6 +135,7 @@ RSpec.describe ReminderJob do
           tomorrow = Reminder.where("id > ?", original_id).first
           expect(tomorrow.fire_at).to be_within(1.second).of(reminder.fire_at + 1.day)
           expect(tomorrow.message).to eq(reminder.message)
+          expect(tomorrow.kind).to eq(reminder.kind)
           expect(tomorrow.user).to eq(user)
           expect(tomorrow.recurs_daily).to be(true)
         end
