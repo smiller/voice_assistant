@@ -233,6 +233,12 @@ RSpec.describe CommandParser do
         expect(result[:params][:minute]).to eq(5)
       end
 
+      it "parses 'seven zero one pm' as 7:01 PM (zero-prefix form)" do
+        result = parser.parse("set a seven zero one pm reminder to check dinner")
+        expect(result[:params][:hour]).to eq(19)
+        expect(result[:params][:minute]).to eq(1)
+      end
+
       it "parses 'six five pm' as 6:05 PM (no oh-prefix)" do
         result = parser.parse("set a six five pm reminder to take a pill")
         expect(result[:params][:hour]).to eq(18)
