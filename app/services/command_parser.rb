@@ -45,7 +45,11 @@ class CommandParser
 
   def normalize_numbers(text)
     words_replaced = WORD_TO_NUMBER.reduce(text) { |t, (word, digit)| t.gsub(/\b#{word}\b/i, digit.to_s) }
+    # "oh/zero" prefix collapses "0 5" -> "05" (e.g. "six oh five" -> "6 05")
     oh_collapsed    = words_replaced.gsub(/\b0 ([1-9])\b/) { "0#{$1}" }
+    # Tens+ones pairs collapse "40 9" -> "49" (e.g. "six forty nine" -> "6 49").
+    # Ambiguity policy: bare single-digit after hour ("six five") is treated as
+    # the minute value directly (5), i.e. 6:05 not 6:50. "Six fifty" is unambiguous.
     oh_collapsed.gsub(/\b([1-5]0) ([1-9])\b/) { ($1.to_i + $2.to_i).to_s }
   end
 end
