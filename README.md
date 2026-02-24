@@ -2,7 +2,9 @@
 
 A multi-user, browser-based voice assistant built with Rails 8. Press and hold Space to speak a command; the audio is transcribed, interpreted, and answered via synthesized speech. Timers and reminders are scheduled server-side and delivered to the open browser tab through Action Cable.
 
-Built with [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) — an AI-powered engineering plugin for Claude Code.
+Built with Claude Code and
+- Every.to's [compound-engineering plugin](https://github.com/EveryInc/compound-engineering-plugin)
+- Lada Kesseler's TDD skill from her [skill-factory](https://github.com/lexler/skill-factory)
 
 ## Stack
 
