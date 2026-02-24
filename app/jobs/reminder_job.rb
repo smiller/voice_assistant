@@ -7,7 +7,7 @@ class ReminderJob < ApplicationJob
 
     audio = ElevenLabsClient.new.synthesize(text: delivery_text(reminder), voice_id: reminder.user.elevenlabs_voice_id)
     token = SecureRandom.hex
-    Rails.cache.write("reminder_audio_#{token}", audio)
+    Rails.cache.write("reminder_audio_#{token}", audio, expires_in: 5.minutes)
     Turbo::StreamsChannel.broadcast_append_to(
       reminder.user,
       target: "voice_alerts",

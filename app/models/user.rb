@@ -1,7 +1,11 @@
 class User < ApplicationRecord
   has_secure_password
 
-  after_initialize do
+  after_initialize :set_defaults, if: :new_record?
+
+  private
+
+  def set_defaults
     self.elevenlabs_voice_id ||= ENV["ELEVENLABS_VOICE_ID"]
     self.timezone ||= "Eastern Time (US & Canada)"
   end

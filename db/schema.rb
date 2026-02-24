@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_23_234111) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_24_013952) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -42,15 +42,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_234111) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "conversations", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "title", default: "", null: false
-    t.datetime "updated_at", null: false
-  end
-
   create_table "reminders", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.datetime "fire_at"
+    t.datetime "fire_at", null: false
     t.string "kind", default: "reminder", null: false
     t.text "message"
     t.boolean "recurs_daily", default: false, null: false
@@ -58,18 +52,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_234111) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.bigint "voice_command_id"
+    t.index ["status", "fire_at"], name: "index_reminders_on_status_and_fire_at"
     t.index ["user_id"], name: "index_reminders_on_user_id"
     t.index ["voice_command_id"], name: "index_reminders_on_voice_command_id"
-  end
-
-  create_table "turns", force: :cascade do |t|
-    t.text "assistant_response_text"
-    t.bigint "conversation_id", null: false
-    t.datetime "created_at", null: false
-    t.integer "status", default: 0, null: false
-    t.datetime "updated_at", null: false
-    t.text "user_transcript"
-    t.index ["conversation_id"], name: "index_turns_on_conversation_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -86,12 +71,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_234111) do
 
   create_table "voice_commands", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "intent"
+    t.string "intent", default: "unknown", null: false
     t.jsonb "params", default: {}, null: false
-    t.string "status"
+    t.string "status", default: "received", null: false
     t.text "transcript"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["status"], name: "index_voice_commands_on_status"
     t.index ["user_id"], name: "index_voice_commands_on_user_id"
   end
 
@@ -99,6 +85,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_23_234111) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "reminders", "users"
   add_foreign_key "reminders", "voice_commands"
-  add_foreign_key "turns", "conversations"
   add_foreign_key "voice_commands", "users"
 end

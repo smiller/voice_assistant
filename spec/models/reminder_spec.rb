@@ -50,6 +50,35 @@ RSpec.describe Reminder do
     end
   end
 
+  describe "kind/recurs_daily invariant" do
+    it "is invalid when kind is daily_reminder but recurs_daily is false" do
+      reminder = build(:reminder, kind: :daily_reminder, recurs_daily: false)
+
+      expect(reminder).not_to be_valid
+      expect(reminder.errors[:recurs_daily]).to be_present
+    end
+
+    it "is invalid when kind is reminder but recurs_daily is true" do
+      reminder = build(:reminder, kind: :reminder, recurs_daily: true)
+
+      expect(reminder).not_to be_valid
+      expect(reminder.errors[:recurs_daily]).to be_present
+    end
+
+    it "is invalid when kind is timer but recurs_daily is true" do
+      reminder = build(:reminder, kind: :timer, recurs_daily: true)
+
+      expect(reminder).not_to be_valid
+      expect(reminder.errors[:recurs_daily]).to be_present
+    end
+
+    it "is valid when kind is daily_reminder and recurs_daily is true" do
+      reminder = build(:reminder, kind: :daily_reminder, recurs_daily: true)
+
+      expect(reminder).to be_valid
+    end
+  end
+
   describe "defaults" do
     it "defaults to pending status" do
       reminder = build(:reminder)

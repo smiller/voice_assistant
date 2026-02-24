@@ -52,6 +52,32 @@ RSpec.describe SunriseSunsetClient do
       end
     end
 
+    context "when the API returns a non-2xx HTTP response" do
+      before do
+        stub_request(:get, api_url)
+          .with(query: hash_including({}))
+          .to_return(status: 503, body: "Service Unavailable")
+      end
+
+      it "raises an error mentioning the HTTP status code" do
+        expect { client.sunset_time(lat: lat, lng: lng) }
+          .to raise_error(SunriseSunsetClient::Error, /503/)
+      end
+    end
+
+    context "when the API returns a non-JSON body" do
+      before do
+        stub_request(:get, api_url)
+          .with(query: hash_including({}))
+          .to_return(status: 200, body: "<html>error</html>", headers: { "Content-Type" => "text/html" })
+      end
+
+      it "raises an error mentioning 'Invalid response'" do
+        expect { client.sunset_time(lat: lat, lng: lng) }
+          .to raise_error(SunriseSunsetClient::Error, /Invalid response/)
+      end
+    end
+
     context "when the network request fails" do
       before do
         stub_request(:get, api_url)

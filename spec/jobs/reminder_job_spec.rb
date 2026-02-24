@@ -61,6 +61,16 @@ RSpec.describe ReminderJob do
         expect(Rails.cache.read("reminder_audio_abc123")).to eq(audio_bytes)
       end
 
+      it "stores audio with a 5-minute expiry" do
+        allow(SecureRandom).to receive(:hex).and_return("abc123")
+        allow(cache_store).to receive(:write).and_call_original
+
+        described_class.perform_now(reminder.id)
+
+        expect(cache_store).to have_received(:write)
+          .with("reminder_audio_abc123", audio_bytes, expires_in: 5.minutes)
+      end
+
       it "broadcasts a Turbo Stream append to the user with the token" do
         allow(SecureRandom).to receive(:hex).and_return("abc123")
 

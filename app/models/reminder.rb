@@ -16,4 +16,6 @@ class Reminder < ApplicationRecord
 
   validates :message, presence: true
   validates :fire_at, presence: true
+  validates :recurs_daily, inclusion: { in: [ true ] }, if: :daily_reminder?
+  validates :recurs_daily, inclusion: { in: [ false ] }, unless: :daily_reminder?
 end
