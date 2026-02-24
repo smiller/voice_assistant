@@ -12,6 +12,7 @@ class DeepgramClient
     req["Authorization"] = "Token #{ENV.fetch("DEEPGRAM_API_KEY")}"
     req["Content-Type"] = "audio/webm;codecs=opus"
     req.body = audio
+    Rails.logger.info("DeepgramClient: sending #{audio.bytesize} bytes")
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
 
     unless response.is_a?(Net::HTTPSuccess)
