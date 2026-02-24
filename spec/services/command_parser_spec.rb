@@ -252,6 +252,46 @@ RSpec.describe CommandParser do
       end
     end
 
+    context "with spoken times at the boundaries of 12-hour clock handling" do
+      it "parses 'twelve oh five am' as 12:05 AM (midnight with minutes)" do
+        result = parser.parse("set a twelve oh five am reminder to wake up")
+        expect(result[:params][:hour]).to eq(0)
+        expect(result[:params][:minute]).to eq(5)
+      end
+
+      it "parses 'twelve thirty pm' as 12:30 PM (noon with minutes)" do
+        result = parser.parse("set a twelve thirty pm reminder to eat lunch")
+        expect(result[:params][:hour]).to eq(12)
+        expect(result[:params][:minute]).to eq(30)
+      end
+
+      it "parses 'eleven fifty nine pm' as 11:59 PM (last minute of the day)" do
+        result = parser.parse("set a eleven fifty nine pm reminder to sleep")
+        expect(result[:params][:hour]).to eq(23)
+        expect(result[:params][:minute]).to eq(59)
+      end
+
+      it "parses 'one oh one am' as 1:01 AM" do
+        result = parser.parse("set a one oh one am reminder to wake up")
+        expect(result[:params][:hour]).to eq(1)
+        expect(result[:params][:minute]).to eq(1)
+      end
+    end
+
+    context "with spoken timer amounts using compound words" do
+      it "parses 'twenty five minutes' as 25" do
+        result = parser.parse("set a timer for twenty five minutes")
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(25)
+      end
+
+      it "parses 'forty five minutes' as 45" do
+        result = parser.parse("set a timer for forty five minutes")
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(45)
+      end
+    end
+
     context "with trailing whitespace in the reminder message" do
       it "strips the message" do
         result = parser.parse("set 7am reminder to write morning pages  ")
