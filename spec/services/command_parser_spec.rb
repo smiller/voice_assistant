@@ -148,6 +148,48 @@ RSpec.describe CommandParser do
       end
     end
 
+    context "when number normalization applies to both the time and the message" do
+      it "collapses all oh-prefix digits, including those in the message" do
+        result = parser.parse("set a seven oh five pm reminder to take oh nine pills")
+
+        expect(result[:params][:hour]).to eq(19)
+        expect(result[:params][:minute]).to eq(5)
+        expect(result[:params][:message]).to eq("take 09 pills")
+      end
+
+      it "collapses all tens+ones pairs, including those in the message" do
+        # time: "four forty two pm" → 4:42 PM; message: "thirty six" must also collapse
+        result = parser.parse("set a four forty two pm reminder to do thirty six pushups")
+
+        expect(result[:params][:hour]).to eq(16)
+        expect(result[:params][:minute]).to eq(42)
+        expect(result[:params][:message]).to eq("do 36 pushups")
+      end
+    end
+
+    context "with multiple consecutive spaces (extra whitespace in transcript)" do
+      it "matches timer with two spaces after 'timer'" do
+        result = parser.parse("timer  5 minutes")
+
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(5)
+      end
+
+      it "matches timer with two spaces after 'for'" do
+        result = parser.parse("timer for  5 minutes")
+
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(5)
+      end
+
+      it "matches timer with two spaces before 'minutes'" do
+        result = parser.parse("timer for 5  minutes")
+
+        expect(result[:intent]).to eq(:timer)
+        expect(result[:params][:minutes]).to eq(5)
+      end
+    end
+
     context "with an uppercase number word" do
       it "normalizes case-insensitively" do
         result = parser.parse("set timer for TEN minutes")

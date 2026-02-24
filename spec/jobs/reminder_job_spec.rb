@@ -83,6 +83,22 @@ RSpec.describe ReminderJob do
       end
     end
 
+    context "when reminder is a daily_reminder kind" do
+      let(:reminder) do
+        create(:reminder, user: user, kind: :daily_reminder,
+          message: "write morning pages", fire_at: 1.hour.from_now, recurs_daily: true)
+      end
+
+      it "synthesizes audio prefixed with the current time in the user's timezone" do
+        travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do  # 7:00 AM ET
+          described_class.perform_now(reminder.id)
+
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "It's 7:00 AM. Reminder: write morning pages", voice_id: "voice123")
+        end
+      end
+    end
+
     context "when reminder is a timer kind" do
       let(:reminder) do
         create(:reminder, user: user, kind: :timer,

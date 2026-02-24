@@ -35,7 +35,7 @@ class CommandResponder
       tomorrow = resolve_reminder_time(p, user).to_date > Time.current.in_time_zone(user.timezone).to_date
       "Daily reminder set for #{time_str}#{' tomorrow' if tomorrow} to #{p[:message]}"
     else
-      "I didn't understand that"
+      "Sorry, I didn't understand that"
     end
   end
 

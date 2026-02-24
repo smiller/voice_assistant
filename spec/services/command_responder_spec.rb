@@ -11,6 +11,18 @@ RSpec.describe CommandResponder do
     allow(tts_client).to receive(:synthesize).and_return(audio_bytes)
   end
 
+  describe "#initialize" do
+    it "defaults tts_client to a new ElevenLabsClient instance" do
+      client = instance_double(ElevenLabsClient)
+      allow(ElevenLabsClient).to receive(:new).and_return(client)
+      allow(client).to receive(:synthesize).and_return(audio_bytes)
+
+      CommandResponder.new.respond(transcript: "time check", user: user)
+
+      expect(ElevenLabsClient).to have_received(:new)
+    end
+  end
+
   describe "#respond" do
     context "with a time check transcript" do
       it "returns synthesized audio of the current time" do
@@ -48,7 +60,7 @@ RSpec.describe CommandResponder do
 
         expect(result).to eq(audio_bytes)
         expect(tts_client).to have_received(:synthesize)
-          .with(text: "I didn't understand that", voice_id: "voice123")
+          .with(text: "Sorry, I didn't understand that", voice_id: "voice123")
       end
     end
 
@@ -84,6 +96,14 @@ RSpec.describe CommandResponder do
           expect(reminder.fire_at).to eq(5.minutes.from_now)
           expect(reminder.recurs_daily).to be(false)
           expect(reminder.status).to eq("pending")
+        end
+      end
+
+      it "creates a Reminder with singular 'minute' in the message for a 1-minute timer" do
+        travel_to Time.new(2026, 2, 23, 14, 0, 0, "UTC") do
+          responder.respond(transcript: "set a timer for 1 minute", user: user)
+
+          expect(Reminder.last.message).to eq("Timer finished after 1 minute")
         end
       end
 
@@ -154,6 +174,20 @@ RSpec.describe CommandResponder do
       end
     end
 
+    context "when user timezone differs from the server timezone" do
+      let(:user) { create(:user, timezone: "Pacific Time (US & Canada)", elevenlabs_voice_id: "voice123") }
+
+      # Server is EST (UTC-5); Pacific is UTC-8. Time.local would use EST, not Pacific.
+      it "uses the user's timezone (not the server timezone) to compute fire_at" do
+        travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 9pm reminder to meditate", user: user)
+
+          expected_fire_at = Time.use_zone("Pacific Time (US & Canada)") { Time.zone.local(2026, 2, 23, 21, 0, 0) }
+          expect(Reminder.last.fire_at).to be_within(1.second).of(expected_fire_at)
+        end
+      end
+    end
+
     context "when user timezone is stored as Rails name (Eastern Time (US & Canada))" do
       let(:user) { create(:user, timezone: "Eastern Time (US & Canada)", elevenlabs_voice_id: "voice123") }
 
@@ -178,6 +212,29 @@ RSpec.describe CommandResponder do
 
           expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 21, 0, 0) }
           expect(Reminder.last.fire_at).to be_within(1.second).of(expected_fire_at)
+        end
+      end
+    end
+
+    context "when UTC date is ahead of user's local date and reminder time has already passed locally" do
+      let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
+
+      # UTC Feb 24 01:00 = ET Feb 23 20:00 (8pm); 8am ET has already passed
+      it "says tomorrow in the reminder confirmation using the user's local date" do
+        travel_to Time.new(2026, 2, 24, 1, 0, 0, "UTC") do
+          responder.respond(transcript: "set a 8am reminder to exercise", user: user)
+
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Reminder set for 8:00 AM tomorrow to exercise", voice_id: "voice123")
+        end
+      end
+
+      it "says tomorrow in the daily reminder confirmation using the user's local date" do
+        travel_to Time.new(2026, 2, 24, 1, 0, 0, "UTC") do
+          responder.respond(transcript: "set a daily 8am reminder to exercise", user: user)
+
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Daily reminder set for 8:00 AM tomorrow to exercise", voice_id: "voice123")
         end
       end
     end
