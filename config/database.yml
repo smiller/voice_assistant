@@ -87,17 +87,13 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    database: voice_assistant_production
-    username: voice_assistant
-    password: <%= ENV["VOICE_ASSISTANT_DATABASE_PASSWORD"] %>
+    url: <%= ENV["DATABASE_URL"] %>
   cache:
     <<: *primary_production
-    database: voice_assistant_production_cache
     migrations_paths: db/cache_migrate
   queue:
-    url: <%= ENV.fetch("QUEUE_DATABASE_URL", ENV["DATABASE_URL"]) %>
+    <<: *primary_production
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
-    database: voice_assistant_production_cable
     migrations_paths: db/cable_migrate
