@@ -10,7 +10,7 @@ class DeepgramClient
     uri = URI(BASE_URL)
     req = Net::HTTP::Post.new(uri)
     req["Authorization"] = "Token #{ENV.fetch("DEEPGRAM_API_KEY")}"
-    req["Content-Type"] = "audio/webm"
+    req["Content-Type"] = "audio/webm;codecs=opus"
     req.body = audio
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
 

@@ -14,7 +14,7 @@ RSpec.describe DeepgramClient do
       before do
         stub_request(:post, api_url)
           .with(
-            headers: { "Authorization" => "Token test_dg_key", "Content-Type" => "audio/webm" },
+            headers: { "Authorization" => "Token test_dg_key", "Content-Type" => "audio/webm;codecs=opus" },
             body: audio
           )
           .to_return(
