@@ -5,6 +5,7 @@ export default class extends Controller {
   static values = { recording: Boolean }
 
   MAX_DURATION_MS = 15000
+  MIN_DURATION_MS = 500
 
   connect() {
     this.handleKeydown = this.handleKeydown.bind(this)
@@ -54,6 +55,7 @@ export default class extends Controller {
       this.mediaRecorder = new MediaRecorder(stream)
       this.mediaRecorder.ondataavailable = (e) => this.chunks.push(e.data)
       this.mediaRecorder.start()
+      this.recordingStartedAt = Date.now()
       this.recordingValue = true
       this.updateStatus("Listening…")
       this.autoStopTimeout = setTimeout(() => this.stopRecording(), this.MAX_DURATION_MS)
@@ -65,6 +67,13 @@ export default class extends Controller {
   stopRecording() {
     clearTimeout(this.autoStopTimeout)
     if (!this.mediaRecorder) return
+
+    const elapsed = Date.now() - this.recordingStartedAt
+    if (elapsed < this.MIN_DURATION_MS) {
+      this.autoStopTimeout = setTimeout(() => this.stopRecording(), this.MIN_DURATION_MS - elapsed)
+      return
+    }
+
     this.mediaRecorder.onstop = () => {
       const blob = new Blob(this.chunks, { type: "audio/webm" })
       this.mediaRecorder.stream.getTracks().forEach(t => t.stop())
