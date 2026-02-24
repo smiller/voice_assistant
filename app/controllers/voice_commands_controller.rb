@@ -1,6 +1,4 @@
-class VoiceCommandsController < ApplicationController
-  before_action :require_authentication
-
+class VoiceCommandsController < AuthenticatedController
   def index
   end
 

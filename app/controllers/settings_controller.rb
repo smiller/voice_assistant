@@ -1,6 +1,4 @@
-class SettingsController < ApplicationController
-  before_action :require_authentication
-
+class SettingsController < AuthenticatedController
   def edit; end
 
   def update
