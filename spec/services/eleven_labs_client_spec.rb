@@ -43,6 +43,15 @@ RSpec.describe ElevenLabsClient do
         expect { client.synthesize(text: text, voice_id: voice_id) }
           .to raise_error(ElevenLabsClient::Error)
       end
+
+      it "logs the HTTP status and response body" do
+        allow(Rails.logger).to receive(:error)
+
+        client.synthesize(text: text, voice_id: voice_id) rescue nil
+
+        expect(Rails.logger).to have_received(:error)
+          .with(a_string_including("401", "Unauthorized"))
+      end
     end
 
     context "when the network request fails" do
@@ -54,6 +63,15 @@ RSpec.describe ElevenLabsClient do
       it "raises an error" do
         expect { client.synthesize(text: text, voice_id: voice_id) }
           .to raise_error(ElevenLabsClient::Error)
+      end
+
+      it "logs the exception class and message" do
+        allow(Rails.logger).to receive(:error)
+
+        client.synthesize(text: text, voice_id: voice_id) rescue nil
+
+        expect(Rails.logger).to have_received(:error)
+          .with(a_string_including("Net::OpenTimeout"))
       end
     end
   end

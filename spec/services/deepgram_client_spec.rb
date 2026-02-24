@@ -55,6 +55,15 @@ RSpec.describe DeepgramClient do
         expect { client.transcribe(audio: audio) }
           .to raise_error(DeepgramClient::Error)
       end
+
+      it "logs the HTTP status and response body" do
+        allow(Rails.logger).to receive(:error)
+
+        client.transcribe(audio: audio) rescue nil
+
+        expect(Rails.logger).to have_received(:error)
+          .with(a_string_including("401", "INVALID_CREDENTIALS"))
+      end
     end
 
     context "when the network request fails" do
@@ -66,6 +75,15 @@ RSpec.describe DeepgramClient do
       it "raises an error" do
         expect { client.transcribe(audio: audio) }
           .to raise_error(DeepgramClient::Error)
+      end
+
+      it "logs the exception class and message" do
+        allow(Rails.logger).to receive(:error)
+
+        client.transcribe(audio: audio) rescue nil
+
+        expect(Rails.logger).to have_received(:error)
+          .with(a_string_including("Net::OpenTimeout"))
       end
     end
   end

@@ -15,10 +15,17 @@ class ElevenLabsClient
     req["Accept"] = "audio/mpeg"
     req.body = { text: text, model_id: MODEL_ID }.to_json
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
-    raise Error unless response.is_a?(Net::HTTPSuccess)
+
+    unless response.is_a?(Net::HTTPSuccess)
+      Rails.logger.error("ElevenLabsClient error: #{response.code} #{response.body}")
+      raise Error
+    end
 
     response.body
-  rescue StandardError
+  rescue Error
+    raise
+  rescue StandardError => e
+    Rails.logger.error("ElevenLabsClient error: #{e.class}: #{e.message}")
     raise Error
   end
 end

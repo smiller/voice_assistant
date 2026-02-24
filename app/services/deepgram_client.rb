@@ -13,11 +13,18 @@ class DeepgramClient
     req["Content-Type"] = "audio/webm"
     req.body = audio
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
-    raise Error unless response.is_a?(Net::HTTPSuccess)
+
+    unless response.is_a?(Net::HTTPSuccess)
+      Rails.logger.error("DeepgramClient error: #{response.code} #{response.body}")
+      raise Error
+    end
 
     data = JSON.parse(response.body)
     data.dig("results", "channels", 0, "alternatives", 0, "transcript")
-  rescue StandardError
+  rescue Error
+    raise
+  rescue StandardError => e
+    Rails.logger.error("DeepgramClient error: #{e.class}: #{e.message}")
     raise Error
   end
 end
