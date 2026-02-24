@@ -1,10 +1,10 @@
 class CommandResponder
-  def initialize(tts_client: ElevenLabsClient.new)
+  def initialize(tts_client: ElevenLabsClient.new, geo_client: SunriseSunsetClient.new)
     @tts_client = tts_client
+    @geo_client = geo_client
   end
 
-  def respond(transcript:, user:)
-    command = CommandParser.new.parse(transcript)
+  def respond(command:, user:)
     text = response_text(command, user)
     schedule_reminder(command, user)
     @tts_client.synthesize(text: text, voice_id: user.elevenlabs_voice_id)
@@ -18,7 +18,7 @@ class CommandResponder
       time = Time.current.in_time_zone(user.timezone)
       "The time is #{time.strftime("%-I:%M %p")}"
     when :sunset
-      sunset = SunriseSunsetClient.new.sunset_time(lat: user.lat, lng: user.lng)
+      sunset = @geo_client.sunset_time(lat: user.lat, lng: user.lng)
       local = sunset.in_time_zone(user.timezone)
       "Sunset today is at #{local.strftime("%-I:%M %p")}"
     when :timer

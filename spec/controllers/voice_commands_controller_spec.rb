@@ -64,11 +64,11 @@ RSpec.describe VoiceCommandsController, type: :request do
         expect(deepgram).to have_received(:transcribe).with(audio: audio_data)
       end
 
-      it "calls respond with the transcript and current user" do
+      it "calls respond with the parsed command and current user" do
         post "/voice_commands", params: { audio: audio_file }
 
         expect(responder).to have_received(:respond)
-          .with(transcript: "what time is it", user: user)
+          .with(command: { intent: :time_check, params: {} }, user: user)
       end
 
       it "creates a VoiceCommand with correct attributes" do
@@ -100,6 +100,26 @@ RSpec.describe VoiceCommandsController, type: :request do
         post "/voice_commands"
 
         expect(response).to have_http_status(:bad_request)
+      end
+
+      it "returns 422 when audio exceeds 1 MB" do
+        oversized = Rack::Test::UploadedFile.new(
+          StringIO.new("x" * (1.megabyte + 1)), "audio/webm", original_filename: "big.webm"
+        )
+
+        post "/voice_commands", params: { audio: oversized }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "returns 422 when audio has a non-audio MIME type" do
+        bad_type = Rack::Test::UploadedFile.new(
+          StringIO.new("data"), "text/plain", original_filename: "file.txt"
+        )
+
+        post "/voice_commands", params: { audio: bad_type }
+
+        expect(response).to have_http_status(:unprocessable_entity)
       end
 
       context "when Deepgram returns a blank transcript" do
