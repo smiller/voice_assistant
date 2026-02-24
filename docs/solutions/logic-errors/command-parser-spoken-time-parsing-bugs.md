@@ -143,7 +143,10 @@ model their combination.
 
 **Document ambiguous input forms with a policy.** "Six five" could mean 6:05 or 6:50. The
 parser resolves it one way; that choice must be named, commented, and tested — otherwise it
-becomes an invisible user-facing bug.
+becomes an invisible user-facing bug. **Policy:** a bare single digit after the hour is
+treated as the minute value directly ("six five" → 6:05, not 6:50). "Six fifty" is
+unambiguous and resolves to 6:50. This is documented in a comment in `normalize_numbers`
+and tested in `spec/services/command_parser_spec.rb` ("single-digit spoken minutes" context).
 
 ## Test Case Checklist (for future time-parsing changes)
 
