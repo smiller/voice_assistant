@@ -23,5 +23,7 @@ class VoiceCommandsController < AuthenticatedController
     command.update!(status: "processed")
 
     send_data audio_bytes, type: "audio/mpeg", disposition: "inline"
+  rescue DeepgramClient::Error
+    head :unprocessable_entity
   end
 end

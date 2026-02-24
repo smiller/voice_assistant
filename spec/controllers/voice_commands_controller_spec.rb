@@ -133,6 +133,20 @@ RSpec.describe VoiceCommandsController, type: :request do
           expect(response).to have_http_status(:bad_request)
         end
       end
+
+      context "when DeepgramClient raises an error" do
+        let(:deepgram) { instance_double(DeepgramClient) }
+
+        before { allow(deepgram).to receive(:transcribe).and_raise(DeepgramClient::Error) }
+
+        it "returns 422 without creating a VoiceCommand" do
+          expect {
+            post "/voice_commands", params: { audio: audio_file }
+          }.not_to change(VoiceCommand, :count)
+
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
     end
   end
 end
