@@ -229,6 +229,41 @@ RSpec.describe Reminder do
           expect(nine_am.next_in_list).to eq(two_pm)
         end
       end
+
+      it "finds the sibling at the same hour with a later minute" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do  # midnight ET
+          nine_oclock = create(:reminder, :daily, user: user,
+                               fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 9, 0, 0) })
+          nine_thirty = create(:reminder, :daily, user: user,
+                               fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 9, 30, 0) })
+
+          expect(nine_oclock.next_in_list).to eq(nine_thirty)
+        end
+      end
+
+      it "does not return a sibling at an earlier hour even when it has more minutes" do
+        # Without the * 60 multiplier, 8:30 (8+30=38) ranks after 9:00 (9+0=9)
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do  # midnight ET
+          nine_am      = create(:reminder, :daily, user: user,
+                                fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 9, 0, 0) })
+          eight_thirty = create(:reminder, :daily, user: user,
+                                fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 8, 30, 0) })
+
+          expect(nine_am.next_in_list).to be_nil
+        end
+      end
+
+      it "treats 2:00 as later than 1:59" do
+        # With multiplier 59: 1*59+59 = 118 and 2*59+0 = 118 — equal, so 2:00 would not be found
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do  # midnight ET
+          one_fifty_nine = create(:reminder, :daily, user: user,
+                                  fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 1, 59, 0) })
+          two_oclock     = create(:reminder, :daily, user: user,
+                                  fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 2, 0, 0) })
+
+          expect(one_fifty_nine.next_in_list).to eq(two_oclock)
+        end
+      end
     end
 
     context "for a timer" do
