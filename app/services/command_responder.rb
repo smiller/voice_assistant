@@ -1,4 +1,6 @@
 class CommandResponder
+  include ActionView::RecordIdentifier
+
   def initialize(tts_client: ElevenLabsClient.new, geo_client: SunriseSunsetClient.new)
     @tts_client = tts_client
     @geo_client = geo_client
@@ -61,7 +63,7 @@ class CommandResponder
     if next_reminder
       Turbo::StreamsChannel.broadcast_before_to(
         reminder.user,
-        target: ActionView::RecordIdentifier.dom_id(next_reminder),
+        target: dom_id(next_reminder),
         partial: "reminders/reminder",
         locals: { reminder: reminder }
       )

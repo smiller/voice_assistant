@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "030"
 tags: [code-review, performance, rails, quality]
@@ -52,3 +52,9 @@ Effort: Trivial | Risk: None
 ## Work Log
 
 - 2026-02-24: Identified by performance-oracle during code review (finding #3)
+- 2026-02-24: Investigated. `includes(:user)` is load-bearing — `app/views/reminders/_reminder.html.erb`
+  accesses `reminder.user.timezone` on lines 6 and 12 for both the timer and non-timer display branches.
+  Without `includes(:user)` the index action would trigger N+1 queries (one `SELECT users` per reminder).
+  The partial is also rendered via Turbo Stream broadcasts where `current_user` is not available, so the
+  association must be accessible on the reminder object itself. The "one extra query returning one row"
+  is actually preventing N queries, not wasting one. No change needed — wontfix.

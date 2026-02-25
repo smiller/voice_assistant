@@ -66,6 +66,22 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
 
         expect(response).to have_http_status(:bad_request)
       end
+
+      context "when the transcript is unrecognized" do
+        let(:parser) { instance_double(CommandParser, parse: { intent: :unknown, params: {} }) }
+
+        before { allow(CommandParser).to receive(:new).and_return(parser) }
+
+        it "returns 422 with the audio response" do
+          post "/api/v1/text_commands",
+            params: { transcript: "some unrecognized phrase" },
+            headers: headers
+
+          expect(response).to have_http_status(422)
+          expect(response.content_type).to eq("audio/mpeg")
+          expect(response.body).to eq(audio_bytes)
+        end
+      end
     end
   end
 end
