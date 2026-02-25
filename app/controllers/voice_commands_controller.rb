@@ -3,7 +3,10 @@ class VoiceCommandsController < AuthenticatedController
     pending = current_user.reminders.pending.where("fire_at > ?", Time.current).includes(:user).order(:fire_at)
     @timers          = pending.timer
     @reminders       = pending.reminder
-    @daily_reminders = pending.daily_reminder
+    @daily_reminders = pending.daily_reminder.sort_by { |r|
+      local = r.fire_at.in_time_zone(current_user.timezone)
+      [ local.hour, local.min ]
+    }
   end
 
   def create

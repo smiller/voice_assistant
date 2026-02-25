@@ -48,14 +48,19 @@ RSpec.describe VoiceCommandsController, type: :request do
           .to be < response.body.index("reminder_#{later.id}")
       end
 
-      it "renders pending daily_reminders ordered by fire_at" do
-        later  = create(:reminder, :daily, user: user, fire_at: 2.hours.from_now)
-        sooner = create(:reminder, :daily, user: user, fire_at: 1.hour.from_now)
+      it "renders pending daily_reminders ordered by time of day in the user's timezone, not absolute fire_at" do
+        # 10 PM ET: 11 PM fires tonight (earlier fire_at), 7 AM fires tomorrow (later fire_at)
+        travel_to Time.new(2026, 2, 24, 3, 0, 0, "UTC") do  # 10:00 PM ET
+          eleven_pm = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 24, 23, 0, 0) })
+          seven_am  = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 25, 7, 0, 0) })
 
-        get "/voice_commands"
+          get "/voice_commands"
 
-        expect(response.body.index("reminder_#{sooner.id}"))
-          .to be < response.body.index("reminder_#{later.id}")
+          expect(response.body.index("reminder_#{seven_am.id}"))
+            .to be < response.body.index("reminder_#{eleven_pm.id}")
+        end
       end
 
       it "renders timers exactly once (in the timers section, not reminders)" do
