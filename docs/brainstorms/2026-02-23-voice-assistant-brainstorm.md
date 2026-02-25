@@ -43,7 +43,7 @@ Spacebar held/toggled
 
 - **Sunset data**: sunrise-sunset.org API
 - **Closed tab**: silently drop — if no Action Cable connection exists when a job fires, discard the response
-- **Reminder recurrence**: two types distinguished by command — "set 7am reminder …" (one-time), "set daily 7am reminder …" (repeating, rescheduled after each fire); both word orders accepted: "{time} reminder to …" and "reminder at {time} to …"
+- **Reminder recurrence**: two types distinguished by command — "set 7am reminder …" (one-time), "set daily 7am reminder …" (repeating, rescheduled after each fire); multiple word orders accepted: "{time} reminder to …", "reminder at {time} to …", and "reminder for {time} to …"
 - **Per-user voice**: each user stores an ElevenLabs voice ID; used for all TTS responses for that user
 
 ## Open Questions

@@ -290,10 +290,10 @@ class CommandParser
     time_check:     /\btime\b/i,
     sunset:         /\bsunset\b/i,
     timer:          /\btimer\s+(?:for\s+)?(\d+)\s+minute/i,
-    # Both word orders accepted: "daily 7am reminder to …" and "daily reminder at 7am to …"
-    daily_reminder: /\bdaily\s+(?:(?:(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)\s+reminder)|(?:reminder\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)))\s+(?:to\s+)?(.+)/i,
-    # Both word orders accepted: "7am reminder to …" and "reminder at 7am to …"
-    reminder:       /\b(?:(?:(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)\s+reminder)|(?:reminder\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)))\s+(?:to\s+)?(.+)/i,
+    # Word orders accepted: "daily 7am reminder to …", "daily reminder at 7am to …", "daily reminder for 7am to …"
+    daily_reminder: /\bdaily\s+(?:(?:(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)\s+reminder)|(?:reminder\s+(?:at|for)\s+(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)))\s+(?:to\s+)?(.+)/i,
+    # Word orders accepted: "7am reminder to …", "reminder at 7am to …", "reminder for 7am to …"
+    reminder:       /\b(?:(?:(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)\s+reminder)|(?:reminder\s+(?:at|for)\s+(\d{1,2})(?::(\d{2}))?\s*(?:am|pm)))\s+(?:to\s+)?(.+)/i,
   }.freeze
 
   # Normalizes spoken number words to digits, then matches patterns.
