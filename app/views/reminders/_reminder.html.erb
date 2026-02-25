@@ -10,14 +10,8 @@
     </div>
   <% else %>
     <% local_fire_at = reminder.fire_at.in_time_zone(reminder.user.timezone) %>
-    <% today = Time.current.in_time_zone(reminder.user.timezone).to_date %>
-    <% day_label = case local_fire_at.to_date
-                   when today       then "today"
-                   when today + 1   then "tomorrow"
-                   else               local_fire_at.strftime("%b %-d")
-                   end %>
     <span>
-      <%= local_fire_at.strftime("%-I:%M %p") %> <%= day_label %> — <%= reminder.message %>
+      <%= local_fire_at.strftime("%-I:%M %p") %><%= " #{reminder.day_label}" if reminder.day_label %> — <%= reminder.message %>
     </span>
   <% end %>
 </li>
