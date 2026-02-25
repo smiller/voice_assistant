@@ -17,21 +17,17 @@ class CommandParser
     normalized = normalize_numbers(transcript)
 
     return { intent: :time_check, params: {} } if normalized.match?(/\btime\b/i)
-    return { intent: :sunset, params: {} } if normalized.match?(/\bsunset\b/i)
+    return { intent: :sunset, params: {} }     if normalized.match?(/\bsunset\b/i)
 
     if (m = normalized.match(/\btimer\s+(?:for\s+)?(\d+)\s+minute/i))
       return { intent: :timer, params: { minutes: m[1].to_i } }
     end
 
-    if (m = normalized.match(/\bdaily\s+#{REMINDER_TIME_AND_MESSAGE}/) ||
-            normalized.match(/\bdaily\s+#{REMINDER_AT_TIME_AND_MESSAGE}/) ||
-            normalized.match(/\bdaily\s+#{REMINDER_FOR_TIME_AND_MESSAGE}/))
+    if (m = daily_reminder_match(normalized))
       return { intent: :daily_reminder, params: reminder_params(m) }
     end
 
-    if (m = normalized.match(/\b#{REMINDER_TIME_AND_MESSAGE}/) ||
-            normalized.match(/\b#{REMINDER_AT_TIME_AND_MESSAGE}/) ||
-            normalized.match(/\b#{REMINDER_FOR_TIME_AND_MESSAGE}/))
+    if (m = reminder_match(normalized))
       return { intent: :reminder, params: reminder_params(m) }
     end
 
@@ -39,6 +35,18 @@ class CommandParser
   end
 
   private
+
+  def daily_reminder_match(normalized)
+    normalized.match(/\bdaily\s+#{REMINDER_TIME_AND_MESSAGE}/) ||
+      normalized.match(/\bdaily\s+#{REMINDER_AT_TIME_AND_MESSAGE}/) ||
+      normalized.match(/\bdaily\s+#{REMINDER_FOR_TIME_AND_MESSAGE}/)
+  end
+
+  def reminder_match(normalized)
+    normalized.match(/\b#{REMINDER_TIME_AND_MESSAGE}/) ||
+      normalized.match(/\b#{REMINDER_AT_TIME_AND_MESSAGE}/) ||
+      normalized.match(/\b#{REMINDER_FOR_TIME_AND_MESSAGE}/)
+  end
 
   def reminder_params(match)
     hour   = match[1].to_i
