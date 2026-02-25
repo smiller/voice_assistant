@@ -5,9 +5,17 @@ module Api
         transcript = params[:transcript]
         return head :bad_request if transcript.blank?
 
-        command     = CommandParser.new.parse(transcript)
+        command = CommandParser.new.parse(transcript)
+        record  = VoiceCommand.create!(
+          user:       @current_user,
+          transcript: transcript,
+          intent:     command[:intent],
+          params:     command[:params],
+          status:     "received"
+        )
         audio_bytes = CommandResponder.new.respond(command: command, user: @current_user)
-        status      = command[:intent] == :unknown ? 422 : 200
+        record.update!(status: "processed")
+        status = command[:intent] == :unknown ? 422 : 200
         send_data audio_bytes, type: "audio/mpeg", disposition: "inline", status: status
       end
     end

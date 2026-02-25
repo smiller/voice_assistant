@@ -32,10 +32,15 @@ class Reminder < ApplicationRecord
   end
 
   def next_in_list
+    # public_send(kind) dispatches to the AR scope matching the enum string value
+    # (e.g. kind=="timer" calls .timer). Enum keys and values must stay in sync.
     siblings = user.reminders.pending.where("fire_at > ?", Time.current).where.not(id: id).public_send(kind)
 
     if daily_reminder?
       my_minutes = time_of_day_minutes(fire_at)
+      # Sort in Ruby, not by DB fire_at: a daily reminder firing at 11 PM tonight has an
+      # earlier absolute timestamp than one at 7 AM tomorrow, but a later time-of-day.
+      # DB ORDER BY fire_at would give the wrong sequence for the display list.
       siblings.sort_by { |r| time_of_day_minutes(r.fire_at) }
               .find { |r| time_of_day_minutes(r.fire_at) > my_minutes }
     else

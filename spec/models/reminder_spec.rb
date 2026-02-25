@@ -230,6 +230,28 @@ RSpec.describe Reminder do
         end
       end
     end
+
+    context "for a timer" do
+      it "returns nil when no other timers are pending" do
+        timer = create(:reminder, :timer, user: user, fire_at: 2.hours.from_now)
+
+        expect(timer.next_in_list).to be_nil
+      end
+
+      it "returns the timer that fires next after it" do
+        sooner = create(:reminder, :timer, user: user, fire_at: 1.hour.from_now)
+        later  = create(:reminder, :timer, user: user, fire_at: 3.hours.from_now)
+
+        expect(sooner.next_in_list).to eq(later)
+      end
+
+      it "does not return reminders of a different kind" do
+        timer    = create(:reminder, :timer, user: user, fire_at: 1.hour.from_now)
+        _regular = create(:reminder, user: user, fire_at: 2.hours.from_now)
+
+        expect(timer.next_in_list).to be_nil
+      end
+    end
   end
 
   describe "#day_label" do

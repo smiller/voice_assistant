@@ -67,6 +67,19 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
         expect(response).to have_http_status(:bad_request)
       end
 
+      it "creates a VoiceCommand record with the transcript, intent, and processed status" do
+        post "/api/v1/text_commands",
+          params: { transcript: "what time is it" },
+          headers: headers
+
+        record = VoiceCommand.last
+        expect(record.transcript).to eq("what time is it")
+        expect(record.intent).to eq("time_check")
+        expect(record.params).to eq({})
+        expect(record.status).to eq("processed")
+        expect(record.user).to eq(user)
+      end
+
       context "when the transcript is unrecognized" do
         let(:parser) { instance_double(CommandParser, parse: { intent: :unknown, params: {} }) }
 
