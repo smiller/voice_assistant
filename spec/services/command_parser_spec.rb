@@ -334,6 +334,48 @@ RSpec.describe CommandParser do
       end
     end
 
+    context "with 'set reminder at 7am to write morning pages' (alternate word order)" do
+      it "returns :reminder intent with parsed params" do
+        result = parser.parse("set reminder at 7am to write morning pages")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(7)
+        expect(result[:params][:minute]).to eq(0)
+        expect(result[:params][:message]).to eq("write morning pages")
+      end
+    end
+
+    context "with 'set daily reminder at 7am to write morning pages' (alternate word order, daily)" do
+      it "returns :daily_reminder intent with parsed params" do
+        result = parser.parse("set daily reminder at 7am to write morning pages")
+
+        expect(result[:intent]).to eq(:daily_reminder)
+        expect(result[:params][:hour]).to eq(7)
+        expect(result[:params][:minute]).to eq(0)
+        expect(result[:params][:message]).to eq("write morning pages")
+      end
+    end
+
+    context "with 'set reminder at 7:30am to do yoga' (alternate word order, with minutes)" do
+      it "parses minutes correctly" do
+        result = parser.parse("set reminder at 7:30am to do yoga")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(7)
+        expect(result[:params][:minute]).to eq(30)
+        expect(result[:params][:message]).to eq("do yoga")
+      end
+    end
+
+    context "with 'set reminder at 9pm to take medication' (alternate word order, PM)" do
+      it "converts pm hour to 24-hour format" do
+        result = parser.parse("set reminder at 9pm to take medication")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(21)
+      end
+    end
+
     context "with trailing whitespace in the reminder message" do
       it "strips the message" do
         result = parser.parse("set 7am reminder to write morning pages  ")
