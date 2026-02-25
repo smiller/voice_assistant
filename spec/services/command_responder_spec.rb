@@ -5,7 +5,7 @@ RSpec.describe CommandResponder do
   let(:geo_client) { instance_double(SunriseSunsetClient) }
   subject(:responder) { described_class.new(tts_client: tts_client, geo_client: geo_client) }
 
-  let(:user) { build(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
+  let(:user) { create(:user, :voiced, :located) }
   let(:audio_bytes) { "\xFF\xFB\x90\x00" }
 
   before do
@@ -76,8 +76,6 @@ RSpec.describe CommandResponder do
     end
 
     context "with a timer command" do
-      let(:user) { create(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
-
       it "returns synthesized confirmation audio" do
         result = responder.respond(command: { intent: :timer, params: { minutes: 5 } }, user: user)
 
@@ -128,8 +126,6 @@ RSpec.describe CommandResponder do
     end
 
     context "with a reminder command" do
-      let(:user) { create(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
-
       it "returns synthesized confirmation audio" do
         travel_to Time.new(2026, 2, 23, 0, 0, 0, "UTC") do
           result = responder.respond(command: { intent: :reminder, params: { hour: 21, minute: 0, message: "take medication" } }, user: user)
@@ -174,7 +170,7 @@ RSpec.describe CommandResponder do
     end
 
     context "when user timezone differs from the server timezone" do
-      let(:user) { create(:user, timezone: "Pacific Time (US & Canada)", elevenlabs_voice_id: "voice123") }
+      let(:user) { create(:user, :voiced, timezone: "Pacific Time (US & Canada)") }
 
       it "uses the user's timezone (not the server timezone) to compute fire_at" do
         travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
@@ -187,7 +183,7 @@ RSpec.describe CommandResponder do
     end
 
     context "when user timezone is stored as Rails name (Eastern Time (US & Canada))" do
-      let(:user) { create(:user, timezone: "Eastern Time (US & Canada)", elevenlabs_voice_id: "voice123") }
+      let(:user) { create(:user, :voiced, timezone: "Eastern Time (US & Canada)") }
 
       it "schedules for today, not tomorrow" do
         travel_to Time.new(2026, 2, 23, 23, 0, 0, "UTC") do
@@ -200,8 +196,6 @@ RSpec.describe CommandResponder do
     end
 
     context "when UTC date is ahead of the user's local date" do
-      let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
-
       it "schedules using the user's local date, not the UTC date" do
         travel_to Time.new(2026, 2, 24, 1, 0, 0, "UTC") do
           responder.respond(command: { intent: :reminder, params: { hour: 21, minute: 0, message: "take medication" } }, user: user)
@@ -213,8 +207,6 @@ RSpec.describe CommandResponder do
     end
 
     context "when UTC date is ahead of user's local date and reminder time has already passed locally" do
-      let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
-
       it "says tomorrow in the reminder confirmation using the user's local date" do
         travel_to Time.new(2026, 2, 24, 1, 0, 0, "UTC") do
           responder.respond(command: { intent: :reminder, params: { hour: 8, minute: 0, message: "exercise" } }, user: user)
@@ -235,8 +227,6 @@ RSpec.describe CommandResponder do
     end
 
     context "when the reminder time has already passed today" do
-      let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
-
       it "says tomorrow in the confirmation" do
         travel_to Time.new(2026, 2, 23, 13, 0, 0, "UTC") do
           responder.respond(command: { intent: :reminder, params: { hour: 7, minute: 0, message: "take medication" } }, user: user)
@@ -266,8 +256,6 @@ RSpec.describe CommandResponder do
     end
 
     context "with a daily reminder command" do
-      let(:user) { create(:user, lat: 40.7128, lng: -74.0060, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
-
       it "returns synthesized confirmation audio" do
         travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
           result = responder.respond(command: { intent: :daily_reminder, params: { hour: 7, minute: 0, message: "write morning pages" } }, user: user)
@@ -347,8 +335,6 @@ RSpec.describe CommandResponder do
     end
 
     context "broadcast on schedule" do
-      let(:user) { create(:user, timezone: "America/New_York", elevenlabs_voice_id: "voice123") }
-
       before { allow(Turbo::StreamsChannel).to receive(:broadcast_append_to) }
 
       it "broadcasts a timer append to the timers target" do
