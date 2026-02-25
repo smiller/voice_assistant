@@ -14,7 +14,7 @@ A multi-user, browser-based voice assistant built on Rails. Users press spacebar
 | Command | Example | Response mechanism |
 |---------|---------|-------------------|
 | Immediate query | "time check", "sunset" | Synchronous — respond in the same request cycle |
-| Delayed trigger | "set timer for 10 minutes", "set 7am reminder to write morning pages" | Sidekiq job fires at scheduled time → Turbo Stream pushes audio to browser |
+| Delayed trigger | "set timer for 10 minutes", "set 7am reminder to write morning pages", "set reminder at 7am to write morning pages" | Sidekiq job fires at scheduled time → Turbo Stream pushes audio to browser |
 
 ## Architecture Flow
 
@@ -43,7 +43,7 @@ Spacebar held/toggled
 
 - **Sunset data**: sunrise-sunset.org API
 - **Closed tab**: silently drop — if no Action Cable connection exists when a job fires, discard the response
-- **Reminder recurrence**: two types distinguished by command — "set 7am reminder …" (one-time), "set daily 7am reminder …" (repeating, rescheduled after each fire)
+- **Reminder recurrence**: two types distinguished by command — "set 7am reminder …" (one-time), "set daily 7am reminder …" (repeating, rescheduled after each fire); both word orders accepted: "{time} reminder to …" and "reminder at {time} to …"
 - **Per-user voice**: each user stores an ElevenLabs voice ID; used for all TTS responses for that user
 
 ## Open Questions

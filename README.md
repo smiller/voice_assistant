@@ -26,8 +26,10 @@ Built with Claude Code and
 | "when is sunset" | Speaks today's sunset time for your location |
 | "set a timer for 5 minutes" | Confirms with "Timer set for 5 minutes"; speaks "Timer finished after 5 minutes" when it fires |
 | "set a 9pm reminder to take medication" | Confirms; speaks "It's 9:00 PM. Reminder: take medication" at 9:00 PM in your timezone |
+| "set reminder at 9pm to take medication" | Same — alternate word order (time before or after "reminder" both work) |
 | "set a 9:30pm reminder to take medication" | Same, with minutes |
 | "set a daily 7am reminder to write morning pages" | Confirms; speaks "It's 7:00 AM. Reminder: write morning pages" every day at 7:00 AM and reschedules automatically |
+| "set daily reminder at 7am to write morning pages" | Same — alternate word order for daily reminders |
 | _(anything else)_ | "Sorry, I didn't understand that" |
 
 **Notes:**
