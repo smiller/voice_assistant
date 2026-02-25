@@ -229,7 +229,7 @@ RSpec.describe CommandResponder do
           responder.respond(command: { intent: :daily_reminder, params: { hour: 8, minute: 0, message: "exercise" } }, user: user)
 
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Daily reminder set for 8 AM tomorrow to exercise", voice_id: "voice123")
+            .with(text: "Daily reminder: 8 AM - exercise", voice_id: "voice123")
         end
       end
     end
@@ -260,7 +260,7 @@ RSpec.describe CommandResponder do
           responder.respond(command: { intent: :daily_reminder, params: { hour: 7, minute: 0, message: "write morning pages" } }, user: user)
 
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Daily reminder set for 7 AM tomorrow to write morning pages", voice_id: "voice123")
+            .with(text: "Daily reminder: 7 AM - write morning pages", voice_id: "voice123")
         end
       end
     end
@@ -274,7 +274,16 @@ RSpec.describe CommandResponder do
 
           expect(result).to eq(audio_bytes)
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Daily reminder set for 7 AM to write morning pages", voice_id: "voice123")
+            .with(text: "Daily reminder: 7 AM - write morning pages", voice_id: "voice123")
+        end
+      end
+
+      it "formats with minutes when non-zero" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          responder.respond(command: { intent: :daily_reminder, params: { hour: 23, minute: 0, message: "do lights out" } }, user: user)
+
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Daily reminder: 11 PM - do lights out", voice_id: "voice123")
         end
       end
 

@@ -24,12 +24,14 @@ class CommandResponder
     when :timer
       minutes = command[:params][:minutes]
       "Timer set for #{minutes} #{"minute".pluralize(minutes)}"
-    when :reminder, :daily_reminder
+    when :daily_reminder
+      params = command[:params]
+      "Daily reminder: #{format_time(params[:hour], params[:minute])} - #{params[:message]}"
+    when :reminder
       params = command[:params]
       time_str = format_time(params[:hour], params[:minute])
       tomorrow = resolve_reminder_time(params, user).to_date > Time.current.in_time_zone(user.timezone).to_date
-      prefix = command[:intent] == :daily_reminder ? "Daily reminder" : "Reminder"
-      "#{prefix} set for #{time_str}#{' tomorrow' if tomorrow} to #{params[:message]}"
+      "Reminder set for #{time_str}#{' tomorrow' if tomorrow} to #{params[:message]}"
     else
       "Sorry, I didn't understand that"
     end
