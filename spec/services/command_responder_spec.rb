@@ -136,7 +136,7 @@ RSpec.describe CommandResponder do
 
           expect(result).to eq(audio_bytes)
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Reminder set for 9:00 PM to take medication", voice_id: "voice123")
+            .with(text: "Reminder set for 9 PM to take medication", voice_id: "voice123")
         end
       end
 
@@ -220,7 +220,7 @@ RSpec.describe CommandResponder do
           responder.respond(command: { intent: :reminder, params: { hour: 8, minute: 0, message: "exercise" } }, user: user)
 
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Reminder set for 8:00 AM tomorrow to exercise", voice_id: "voice123")
+            .with(text: "Reminder set for 8 AM tomorrow to exercise", voice_id: "voice123")
         end
       end
 
@@ -229,7 +229,7 @@ RSpec.describe CommandResponder do
           responder.respond(command: { intent: :daily_reminder, params: { hour: 8, minute: 0, message: "exercise" } }, user: user)
 
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Daily reminder set for 8:00 AM tomorrow to exercise", voice_id: "voice123")
+            .with(text: "Daily reminder set for 8 AM tomorrow to exercise", voice_id: "voice123")
         end
       end
     end
@@ -242,7 +242,7 @@ RSpec.describe CommandResponder do
           responder.respond(command: { intent: :reminder, params: { hour: 7, minute: 0, message: "take medication" } }, user: user)
 
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Reminder set for 7:00 AM tomorrow to take medication", voice_id: "voice123")
+            .with(text: "Reminder set for 7 AM tomorrow to take medication", voice_id: "voice123")
         end
       end
 
@@ -260,7 +260,7 @@ RSpec.describe CommandResponder do
           responder.respond(command: { intent: :daily_reminder, params: { hour: 7, minute: 0, message: "write morning pages" } }, user: user)
 
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Daily reminder set for 7:00 AM tomorrow to write morning pages", voice_id: "voice123")
+            .with(text: "Daily reminder set for 7 AM tomorrow to write morning pages", voice_id: "voice123")
         end
       end
     end
@@ -274,7 +274,7 @@ RSpec.describe CommandResponder do
 
           expect(result).to eq(audio_bytes)
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Daily reminder set for 7:00 AM to write morning pages", voice_id: "voice123")
+            .with(text: "Daily reminder set for 7 AM to write morning pages", voice_id: "voice123")
         end
       end
 
@@ -290,6 +290,17 @@ RSpec.describe CommandResponder do
       end
     end
 
+    context "with a reminder at a non-zero minute" do
+      it "includes the minutes in the confirmation text" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          responder.respond(command: { intent: :reminder, params: { hour: 21, minute: 30, message: "check in" } }, user: user)
+
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "Reminder set for 9:30 PM to check in", voice_id: "voice123")
+        end
+      end
+    end
+
     context "with an 11am reminder command" do
       it "formats the time as AM" do
         travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
@@ -297,7 +308,7 @@ RSpec.describe CommandResponder do
 
           expect(result).to eq(audio_bytes)
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Reminder set for 11:00 AM to stretch", voice_id: "voice123")
+            .with(text: "Reminder set for 11 AM to stretch", voice_id: "voice123")
         end
       end
     end
@@ -309,7 +320,7 @@ RSpec.describe CommandResponder do
 
           expect(result).to eq(audio_bytes)
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Reminder set for 12:00 PM to eat lunch", voice_id: "voice123")
+            .with(text: "Reminder set for 12 PM to eat lunch", voice_id: "voice123")
         end
       end
     end
@@ -321,7 +332,7 @@ RSpec.describe CommandResponder do
 
           expect(result).to eq(audio_bytes)
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "Reminder set for 12:00 AM to sleep", voice_id: "voice123")
+            .with(text: "Reminder set for 12 AM to sleep", voice_id: "voice123")
         end
       end
     end

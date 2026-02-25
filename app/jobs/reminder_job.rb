@@ -41,7 +41,8 @@ class ReminderJob < ApplicationJob
   def delivery_text(reminder)
     return reminder.message if reminder.timer?
 
-    current_time = Time.current.in_time_zone(reminder.user.timezone).strftime("%-I:%M %p")
+    time = Time.current.in_time_zone(reminder.user.timezone)
+    current_time = time.min.zero? ? time.strftime("%-I %p") : time.strftime("%-I:%M %p")
     "It's #{current_time}. Reminder: #{reminder.message}"
   end
 end

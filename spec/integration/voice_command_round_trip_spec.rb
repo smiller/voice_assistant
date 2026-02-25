@@ -66,7 +66,7 @@ RSpec.describe "Voice command round trip", type: :request do
 
         expect(response.content_type).to eq("audio/mpeg")
         expect(tts).to have_received(:synthesize)
-          .with(text: "Reminder set for 9:00 PM to take medication", voice_id: "voice123")
+          .with(text: "Reminder set for 9 PM to take medication", voice_id: "voice123")
 
         expected_fire_at = Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 21, 0, 0) }
         expect(Reminder.last.fire_at).to be_within(1.second).of(expected_fire_at)

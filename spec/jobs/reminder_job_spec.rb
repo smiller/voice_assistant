@@ -58,7 +58,16 @@ RSpec.describe ReminderJob do
           described_class.perform_now(reminder.id)
 
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "It's 4:00 PM. Reminder: take medication", voice_id: "voice123")
+            .with(text: "It's 4 PM. Reminder: take medication", voice_id: "voice123")
+        end
+      end
+
+      it "includes minutes in the synthesized text when fired at a non-zero minute" do
+        travel_to Time.new(2026, 2, 23, 21, 30, 0, "UTC") do  # 4:30 PM ET
+          described_class.perform_now(reminder.id)
+
+          expect(tts_client).to have_received(:synthesize)
+            .with(text: "It's 4:30 PM. Reminder: take medication", voice_id: "voice123")
         end
       end
 
@@ -120,7 +129,7 @@ RSpec.describe ReminderJob do
           described_class.perform_now(reminder.id)
 
           expect(tts_client).to have_received(:synthesize)
-            .with(text: "It's 7:00 AM. Reminder: write morning pages", voice_id: "voice123")
+            .with(text: "It's 7 AM. Reminder: write morning pages", voice_id: "voice123")
         end
       end
     end

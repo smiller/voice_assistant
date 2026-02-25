@@ -80,6 +80,6 @@ class CommandResponder
     ampm = hour < 12 ? "AM" : "PM"
     display_hour = hour % 12
     display_hour = 12 if display_hour == 0
-    format("%d:%02d %s", display_hour, minute, ampm)
+    minute.zero? ? "#{display_hour} #{ampm}" : format("%d:%02d %s", display_hour, minute, ampm)
   end
 end
