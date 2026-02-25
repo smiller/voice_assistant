@@ -57,17 +57,27 @@ class CommandResponder
     reminder = Reminder.create!(user: user, kind: command[:intent], message: message, fire_at: fire_at, recurs_daily: recurs)
     ReminderJob.set(wait_until: fire_at).perform_later(reminder.id)
 
-    target = case reminder.kind
-    when "timer"          then "timers"
-    when "daily_reminder" then "daily_reminders"
-    else                       "reminders"
+    next_reminder = reminder.next_in_list
+    if next_reminder
+      Turbo::StreamsChannel.broadcast_before_to(
+        reminder.user,
+        target: ActionView::RecordIdentifier.dom_id(next_reminder),
+        partial: "reminders/reminder",
+        locals: { reminder: reminder }
+      )
+    else
+      target = case reminder.kind
+      when "timer"          then "timers"
+      when "daily_reminder" then "daily_reminders"
+      else                       "reminders"
+      end
+      Turbo::StreamsChannel.broadcast_append_to(
+        reminder.user,
+        target: target,
+        partial: "reminders/reminder",
+        locals: { reminder: reminder }
+      )
     end
-    Turbo::StreamsChannel.broadcast_append_to(
-      reminder.user,
-      target: target,
-      partial: "reminders/reminder",
-      locals: { reminder: reminder }
-    )
   end
 
   def resolve_reminder_time(params, user)

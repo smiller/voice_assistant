@@ -185,6 +185,21 @@ RSpec.describe ReminderJob do
                   locals: { reminder: instance_of(Reminder) })
         end
       end
+
+      it "broadcasts before the next sibling when one exists by time-of-day" do
+        later_daily = create(:reminder, user: user, kind: :daily_reminder, message: "later task",
+          fire_at: Time.new(2026, 2, 23, 15, 0, 0, "UTC"), recurs_daily: true)
+        allow(Turbo::StreamsChannel).to receive(:broadcast_before_to)
+
+        travel_to Time.new(2026, 2, 23, 7, 0, 0, "UTC") do
+          described_class.perform_now(reminder.id)
+
+          new_reminder = Reminder.where(message: reminder.message).last
+          expect(Turbo::StreamsChannel).to have_received(:broadcast_before_to)
+            .with(user, target: "reminder_#{later_daily.id}",
+                  partial: "reminders/reminder", locals: { reminder: new_reminder })
+        end
+      end
     end
   end
 end

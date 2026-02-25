@@ -28,12 +28,23 @@ class ReminderJob < ApplicationJob
       fire_at: next_fire_at, recurs_daily: true
     )
     ReminderJob.set(wait_until: next_fire_at).perform_later(new_reminder.id)
-    Turbo::StreamsChannel.broadcast_append_to(
-      new_reminder.user,
-      target: "daily_reminders",
-      partial: "reminders/reminder",
-      locals: { reminder: new_reminder }
-    )
+
+    next_sibling = new_reminder.next_in_list
+    if next_sibling
+      Turbo::StreamsChannel.broadcast_before_to(
+        new_reminder.user,
+        target: dom_id(next_sibling),
+        partial: "reminders/reminder",
+        locals: { reminder: new_reminder }
+      )
+    else
+      Turbo::StreamsChannel.broadcast_append_to(
+        new_reminder.user,
+        target: "daily_reminders",
+        partial: "reminders/reminder",
+        locals: { reminder: new_reminder }
+      )
+    end
   end
 
   private

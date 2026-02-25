@@ -392,6 +392,70 @@ RSpec.describe CommandResponder do
 
         expect(Turbo::StreamsChannel).not_to have_received(:broadcast_append_to)
       end
+
+      context "when a later-firing reminder already exists" do
+        let(:later) do
+          create(:reminder, user: user, message: "later event",
+                 fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 22, 0, 0) })
+        end
+
+        before do
+          allow(Turbo::StreamsChannel).to receive(:broadcast_before_to)
+          later  # ensure created before respond is called
+        end
+
+        it "broadcasts before the existing later reminder instead of appending" do
+          travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
+            responder.respond(
+              command: { intent: :reminder, params: { hour: 21, minute: 0, message: "take medication" } },
+              user: user
+            )
+
+            new_reminder = Reminder.find_by(message: "take medication")
+            expect(Turbo::StreamsChannel).to have_received(:broadcast_before_to)
+              .with(user, target: ActionView::RecordIdentifier.dom_id(later),
+                    partial: "reminders/reminder", locals: { reminder: new_reminder })
+          end
+        end
+
+        it "does not broadcast_append_to the reminders list when inserting before a sibling" do
+          travel_to Time.new(2026, 2, 23, 12, 0, 0, "UTC") do
+            responder.respond(
+              command: { intent: :reminder, params: { hour: 21, minute: 0, message: "take medication" } },
+              user: user
+            )
+
+            expect(Turbo::StreamsChannel).not_to have_received(:broadcast_append_to)
+              .with(user, hash_including(target: "reminders"))
+          end
+        end
+      end
+
+      context "when a later-time-of-day daily reminder already exists" do
+        let(:later_daily) do
+          create(:reminder, :daily, user: user, message: "later daily event",
+                 fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 23, 0, 0) })
+        end
+
+        before do
+          allow(Turbo::StreamsChannel).to receive(:broadcast_before_to)
+          later_daily
+        end
+
+        it "broadcasts daily reminder before the existing later sibling" do
+          travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+            responder.respond(
+              command: { intent: :daily_reminder, params: { hour: 7, minute: 0, message: "write morning pages" } },
+              user: user
+            )
+
+            new_reminder = Reminder.find_by(message: "write morning pages")
+            expect(Turbo::StreamsChannel).to have_received(:broadcast_before_to)
+              .with(user, target: ActionView::RecordIdentifier.dom_id(later_daily),
+                    partial: "reminders/reminder", locals: { reminder: new_reminder })
+          end
+        end
+      end
     end
   end
 end

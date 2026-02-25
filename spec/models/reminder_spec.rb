@@ -73,6 +73,165 @@ RSpec.describe Reminder do
     end
   end
 
+  describe "#next_in_list" do
+    let(:user) { create(:user, timezone: "America/New_York") }
+
+    context "for a reminder" do
+      it "returns nil when no other reminders are pending" do
+        reminder = create(:reminder, user: user, fire_at: 2.hours.from_now)
+
+        expect(reminder.next_in_list).to be_nil
+      end
+
+      it "returns nil when all other reminders fire before it" do
+        earlier = create(:reminder, user: user, fire_at: 1.hour.from_now)
+        later   = create(:reminder, user: user, fire_at: 3.hours.from_now)
+
+        expect(later.next_in_list).to be_nil
+      end
+
+      it "returns the first reminder that fires after it" do
+        earlier = create(:reminder, user: user, fire_at: 1.hour.from_now)
+        later   = create(:reminder, user: user, fire_at: 3.hours.from_now)
+
+        expect(earlier.next_in_list).to eq(later)
+      end
+
+      it "does not return reminders of a different kind" do
+        reminder = create(:reminder, user: user, fire_at: 1.hour.from_now)
+        _timer   = create(:reminder, :timer, user: user, fire_at: 2.hours.from_now)
+
+        expect(reminder.next_in_list).to be_nil
+      end
+
+      it "does not return cancelled reminders" do
+        reminder   = create(:reminder, user: user, fire_at: 1.hour.from_now)
+        _cancelled = create(:reminder, user: user, fire_at: 2.hours.from_now, status: "cancelled")
+
+        expect(reminder.next_in_list).to be_nil
+      end
+
+      it "uses absolute fire_at not time-of-day — 11pm today sees 7am tomorrow as next" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do  # midnight ET
+          eleven_pm = create(:reminder, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 23, 0, 0) })
+          seven_am  = create(:reminder, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 24, 7, 0, 0) })
+
+          expect(eleven_pm.next_in_list).to eq(seven_am)
+        end
+      end
+
+      it "returns the reminder with the earliest fire_at among those that come after it" do
+        first  = create(:reminder, user: user, fire_at: 1.hour.from_now)
+        # Create in reverse fire_at order so id order differs from fire_at order
+        fourth = create(:reminder, user: user, fire_at: 4.hours.from_now)
+        second = create(:reminder, user: user, fire_at: 2.hours.from_now)
+
+        expect(first.next_in_list).to eq(second)
+      end
+    end
+
+    context "for a daily_reminder" do
+      it "returns nil when no other daily reminders are pending" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          daily = create(:reminder, :daily, user: user,
+                         fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 23, 0, 0) })
+
+          expect(daily.next_in_list).to be_nil
+        end
+      end
+
+      it "returns the daily reminder with the next later time-of-day" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          seven_am  = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 7, 0, 0) })
+          eleven_pm = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 23, 0, 0) })
+
+          expect(seven_am.next_in_list).to eq(eleven_pm)
+        end
+      end
+
+      it "returns nil when all other daily reminders have an earlier time-of-day" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
+          seven_am  = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 7, 0, 0) })
+          eleven_pm = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 23, 0, 0) })
+
+          expect(eleven_pm.next_in_list).to be_nil
+        end
+      end
+
+      it "uses time-of-day not absolute fire_at — 11pm tonight sorts before 7am tomorrow" do
+        # 11 PM tonight has earlier fire_at than 7 AM tomorrow, but later time-of-day
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do  # midnight ET
+          eleven_pm = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 23, 0, 0) })
+          seven_am  = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 24, 7, 0, 0) })
+
+          expect(seven_am.next_in_list).to eq(eleven_pm)
+        end
+      end
+
+      it "does not return cancelled daily reminders" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do  # midnight ET
+          seven_am   = create(:reminder, :daily, user: user,
+                              fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 7, 0, 0) })
+          _cancelled = create(:reminder, :daily, user: user, status: "cancelled",
+                              fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 9, 0, 0) })
+
+          expect(seven_am.next_in_list).to be_nil
+        end
+      end
+
+      it "does not return past daily reminders even if they have a later time-of-day" do
+        travel_to Time.new(2026, 2, 23, 14, 0, 0, "UTC") do  # 9 AM ET
+          ten_am       = create(:reminder, :daily, user: user,
+                                fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 10, 0, 0) })
+          _past_late   = create(:reminder, :daily, user: user,
+                                fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 22, 23, 0, 0) })
+
+          expect(ten_am.next_in_list).to be_nil
+        end
+      end
+
+      it "finds the first time-of-day after self when siblings are not in time-of-day order in the database" do
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do  # midnight ET
+          nine_am   = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 9, 0, 0) })
+          # Create eleven_pm first so it has a lower id than two_pm (earlier DB order)
+          eleven_pm = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 23, 0, 0) })
+          two_pm    = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 14, 0, 0) })
+
+          # Without sort: eleven_pm (23:00) found first since id < two_pm's id, and 23:00 > 9:00
+          # With sort: two_pm (14:00) is found first as the closest time after 9:00
+          expect(nine_am.next_in_list).to eq(two_pm)
+        end
+      end
+
+      it "uses time-of-day not absolute fire_at — 2pm tomorrow is next after 9am when 11pm fires sooner" do
+        # 11 PM tonight fires sooner (earlier fire_at), but 2 PM tomorrow has an earlier time-of-day
+        travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do  # midnight ET
+          nine_am   = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 9, 0, 0) })
+          eleven_pm = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 23, 23, 0, 0) })
+          two_pm    = create(:reminder, :daily, user: user,
+                             fire_at: Time.use_zone("America/New_York") { Time.zone.local(2026, 2, 24, 14, 0, 0) })
+
+          # sort_by fire_at: eleven_pm (tonight), two_pm (tomorrow) → finds eleven_pm first (WRONG)
+          # sort_by time_of_day: two_pm (14:00), eleven_pm (23:00) → finds two_pm first (CORRECT)
+          expect(nine_am.next_in_list).to eq(two_pm)
+        end
+      end
+    end
+  end
+
   describe "#day_label" do
     let(:user) { build(:user, timezone: "America/New_York") }
 

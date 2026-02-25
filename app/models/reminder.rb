@@ -30,4 +30,23 @@ class Reminder < ApplicationRecord
     else                local_date.strftime("%b %-d")
     end
   end
+
+  def next_in_list
+    siblings = user.reminders.pending.where("fire_at > ?", Time.current).where.not(id: id).public_send(kind)
+
+    if daily_reminder?
+      my_minutes = time_of_day_minutes(fire_at)
+      siblings.sort_by { |r| time_of_day_minutes(r.fire_at) }
+              .find { |r| time_of_day_minutes(r.fire_at) > my_minutes }
+    else
+      siblings.order(:fire_at).where("fire_at > ?", fire_at).first
+    end
+  end
+
+  private
+
+  def time_of_day_minutes(timestamp)
+    local = timestamp.in_time_zone(user.timezone)
+    local.hour * 60 + local.min
+  end
 end
