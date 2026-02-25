@@ -376,6 +376,28 @@ RSpec.describe CommandParser do
       end
     end
 
+    context "with 'set reminder for 7am to write morning pages' (for-preposition word order)" do
+      it "returns :reminder intent with parsed params" do
+        result = parser.parse("set reminder for 7am to write morning pages")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(7)
+        expect(result[:params][:minute]).to eq(0)
+        expect(result[:params][:message]).to eq("write morning pages")
+      end
+    end
+
+    context "with 'set daily reminder for 7am to write morning pages' (for-preposition, daily)" do
+      it "returns :daily_reminder intent with parsed params" do
+        result = parser.parse("set daily reminder for 7am to write morning pages")
+
+        expect(result[:intent]).to eq(:daily_reminder)
+        expect(result[:params][:hour]).to eq(7)
+        expect(result[:params][:minute]).to eq(0)
+        expect(result[:params][:message]).to eq("write morning pages")
+      end
+    end
+
     context "with trailing whitespace in the reminder message" do
       it "strips the message" do
         result = parser.parse("set 7am reminder to write morning pages  ")

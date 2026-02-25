@@ -10,7 +10,8 @@ class CommandParser
   }.freeze
 
   REMINDER_TIME_AND_MESSAGE    = /(\d{1,2})(?:[: ](\d{1,2}))?\s*(am|pm)\s+reminder\s+(?:to\s+)?(.+)/i.freeze
-  REMINDER_AT_TIME_AND_MESSAGE = /reminder\s+at\s+(\d{1,2})(?:[: ](\d{1,2}))?\s*(am|pm)\s+(?:to\s+)?(.+)/i.freeze
+  REMINDER_AT_TIME_AND_MESSAGE  = /reminder\s+at\s+(\d{1,2})(?:[: ](\d{1,2}))?\s*(am|pm)\s+(?:to\s+)?(.+)/i.freeze
+  REMINDER_FOR_TIME_AND_MESSAGE = /reminder\s+for\s+(\d{1,2})(?:[: ](\d{1,2}))?\s*(am|pm)\s+(?:to\s+)?(.+)/i.freeze
 
   def parse(transcript)
     normalized = normalize_numbers(transcript)
@@ -23,12 +24,14 @@ class CommandParser
     end
 
     if (m = normalized.match(/\bdaily\s+#{REMINDER_TIME_AND_MESSAGE}/) ||
-            normalized.match(/\bdaily\s+#{REMINDER_AT_TIME_AND_MESSAGE}/))
+            normalized.match(/\bdaily\s+#{REMINDER_AT_TIME_AND_MESSAGE}/) ||
+            normalized.match(/\bdaily\s+#{REMINDER_FOR_TIME_AND_MESSAGE}/))
       return { intent: :daily_reminder, params: reminder_params(m) }
     end
 
     if (m = normalized.match(/\b#{REMINDER_TIME_AND_MESSAGE}/) ||
-            normalized.match(/\b#{REMINDER_AT_TIME_AND_MESSAGE}/))
+            normalized.match(/\b#{REMINDER_AT_TIME_AND_MESSAGE}/) ||
+            normalized.match(/\b#{REMINDER_FOR_TIME_AND_MESSAGE}/))
       return { intent: :reminder, params: reminder_params(m) }
     end
 
