@@ -514,5 +514,15 @@ RSpec.describe CommandParser do
         expect(result[:intent]).to eq(:alias_loop)
       end
     end
+
+    context "without quotes around source and target (as transcribed by speech-to-text)" do
+      it "parses the alias command without quotes" do
+        result = parser.parse("alias run loop 1 as remember the dishes")
+
+        expect(result[:intent]).to eq(:alias_loop)
+        expect(result[:params][:number]).to eq(1)
+        expect(result[:params][:target]).to eq("remember the dishes")
+      end
+    end
   end
 end
