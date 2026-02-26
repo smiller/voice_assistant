@@ -1,4 +1,6 @@
 class VoiceCommandsController < AuthenticatedController
+  BLANK_TRANSCRIPT_MESSAGE = "Sorry, I didn't catch that, please try again"
+
   def index
     pending = current_user.reminders.pending.where("fire_at > ?", Time.current).includes(:user).order(:fire_at)
     @timers          = pending.timer
@@ -18,7 +20,14 @@ class VoiceCommandsController < AuthenticatedController
     return head :unprocessable_entity unless audio.content_type&.start_with?("audio/")
 
     transcript = DeepgramClient.new.transcribe(audio: audio.read)
-    return head :no_content if transcript.blank?
+    if transcript.blank?
+      audio_bytes = ElevenLabsClient.new.synthesize(
+        text: BLANK_TRANSCRIPT_MESSAGE,
+        voice_id: current_user.elevenlabs_voice_id
+      )
+      response.set_header("X-Status-Text", BLANK_TRANSCRIPT_MESSAGE)
+      return send_data audio_bytes, type: "audio/mpeg", disposition: "inline"
+    end
 
     Rails.logger.info("[VoiceCommand] transcript: #{transcript.inspect}")
     parsed = LoopingReminderDispatcher.new.dispatch(transcript: transcript, user: current_user)

@@ -246,14 +246,19 @@ RSpec.describe VoiceCommandsController, type: :request do
       end
 
       context "when Deepgram returns a blank transcript" do
-        let(:deepgram) { instance_double(DeepgramClient, transcribe: "") }
+        let(:deepgram)     { instance_double(DeepgramClient, transcribe: "") }
+        let(:eleven_labs)  { instance_double(ElevenLabsClient, synthesize: "blank audio") }
 
-        it "returns 204 without creating a VoiceCommand" do
+        before { allow(ElevenLabsClient).to receive(:new).and_return(eleven_labs) }
+
+        it "returns audio with the status-text header without creating a VoiceCommand" do
           expect {
             post "/voice_commands", params: { audio: audio_file }
           }.not_to change(VoiceCommand, :count)
 
-          expect(response).to have_http_status(:no_content)
+          expect(response).to have_http_status(:ok)
+          expect(response.content_type).to eq("audio/mpeg")
+          expect(response.headers["X-Status-Text"]).to eq("Sorry, I didn't catch that, please try again")
         end
       end
 

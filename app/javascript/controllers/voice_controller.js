@@ -94,24 +94,25 @@ export default class extends Controller {
         headers: { "X-CSRF-Token": token },
         body: form
       })
-      if (resp.status === 204) { this.updateStatus("Didn't catch that — try again"); return }
       if (!resp.ok) throw new Error(`Server error: ${resp.status}`)
+      const statusText = resp.headers.get("X-Status-Text")
       const buffer = await resp.arrayBuffer()
-      this.playAudio(buffer)
+      this.playAudio(buffer, statusText)
     } catch (e) {
       this.updateStatus(`Error: ${e.message}`)
     }
   }
 
-  async playAudio(arrayBuffer) {
+  async playAudio(arrayBuffer, statusText = null) {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)()
       const decoded = await ctx.decodeAudioData(arrayBuffer)
       const source = ctx.createBufferSource()
       source.buffer = decoded
       source.connect(ctx.destination)
+      source.onended = () => this.updateStatus("Ready")
       source.start()
-      this.updateStatus("Ready")
+      this.updateStatus(statusText || "Ready")
     } catch (e) {
       this.updateStatus("Audio playback failed")
     }
