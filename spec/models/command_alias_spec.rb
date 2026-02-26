@@ -37,6 +37,19 @@ RSpec.describe CommandAlias do
       expect(duplicate).not_to be_valid
     end
 
+    it "is invalid with a phrase longer than 100 characters" do
+      al = build(:command_alias, phrase: "a" * 101)
+
+      expect(al).not_to be_valid
+      expect(al.errors[:phrase]).to be_present
+    end
+
+    it "is valid with a phrase of exactly 100 characters" do
+      al = build(:command_alias, phrase: "a" * 100)
+
+      expect(al).to be_valid
+    end
+
     it "allows the same phrase for different users" do
       user1 = create(:user)
       user2 = create(:user)

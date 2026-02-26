@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_26_051715) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_26_055204) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -64,6 +64,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_051715) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index "user_id, lower((stop_phrase)::text)", name: "index_looping_reminders_on_user_id_and_lower_stop_phrase", unique: true
+    t.index ["active"], name: "index_looping_reminders_active_true", where: "(active = true)"
     t.index ["user_id", "number"], name: "index_looping_reminders_on_user_id_and_number", unique: true
     t.index ["user_id"], name: "index_looping_reminders_on_user_id"
   end

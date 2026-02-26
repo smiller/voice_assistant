@@ -23,9 +23,11 @@ class LoopingReminderDispatcher
   end
 
   def match_stop_phrase(transcript, user)
-    user.looping_reminders.active_loops.find do |lr|
-      transcript.downcase.include?(lr.stop_phrase.downcase)
-    end
+    normalized = transcript.downcase
+    user.looping_reminders
+        .active_loops
+        .where("? LIKE '%' || LOWER(stop_phrase) || '%'", normalized)
+        .first
   end
 
   def match_alias(transcript, user)
@@ -44,7 +46,7 @@ class LoopingReminderDispatcher
     end
 
     if user.phrase_taken?(phrase)
-      pending.update!(expires_at: 5.minutes.from_now)
+      pending.update!(expires_at: PendingInteraction::INTERACTION_TTL.from_now)
       return { intent: :unknown,
                params: { error: :replacement_phrase_taken, kind: pending.kind } }
     end

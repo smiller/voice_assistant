@@ -1,9 +1,12 @@
 module Api
   module V1
     class TextCommandsController < BaseController
+      MAX_TRANSCRIPT_LENGTH = 1000
+
       def create
         transcript = params[:transcript]
         return head :bad_request if transcript.blank?
+        return head :unprocessable_entity if transcript.length > MAX_TRANSCRIPT_LENGTH
 
         command = LoopingReminderDispatcher.new.dispatch(transcript: transcript, user: @current_user)
         record  = VoiceCommand.create!(

@@ -1,6 +1,7 @@
 class PendingInteraction < ApplicationRecord
   belongs_to :user
 
+  INTERACTION_TTL = 5.minutes
   KINDS = %w[stop_phrase_replacement alias_phrase_replacement].freeze
   validates :kind, inclusion: { in: KINDS }
   validates :expires_at, presence: true

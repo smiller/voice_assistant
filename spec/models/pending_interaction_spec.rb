@@ -1,6 +1,12 @@
 require "rails_helper"
 
 RSpec.describe PendingInteraction do
+  describe "INTERACTION_TTL" do
+    it "is 5 minutes" do
+      expect(described_class::INTERACTION_TTL).to eq(5.minutes)
+    end
+  end
+
   describe "associations" do
     it "belongs to a user" do
       pi = build(:pending_interaction)

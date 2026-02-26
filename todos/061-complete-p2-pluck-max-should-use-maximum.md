@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "061"
 tags: [code-review, performance, looping-reminders, database, quality]
@@ -62,3 +62,4 @@ Option A.
 ## Work Log
 
 - 2026-02-26: Identified by performance-oracle (P2) and kieran-rails-reviewer (P3) during final PR review.
+- 2026-02-26: Will not fix. PostgreSQL raises `PG::FeatureNotSupported: FOR UPDATE is not allowed with aggregate functions` when combining `.lock` with `maximum(:number)`. The `.lock` (SELECT FOR UPDATE) is required for correctness; `pluck(:number).max` is the only valid form that preserves both the lock and the max calculation. Original code is correct as-is.

@@ -61,6 +61,23 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
         expect(response).to have_http_status(:bad_request)
       end
 
+      it "returns 422 and does not call the responder when transcript exceeds 1000 characters" do
+        post "/api/v1/text_commands",
+          params: { transcript: "a" * 1001 },
+          headers: headers
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(responder).not_to have_received(:respond)
+      end
+
+      it "accepts and processes a transcript of exactly 1000 characters" do
+        post "/api/v1/text_commands",
+          params: { transcript: "a" * 1000 },
+          headers: headers
+
+        expect(responder).to have_received(:respond)
+      end
+
       it "returns 400 when transcript is blank" do
         post "/api/v1/text_commands",
           params: { transcript: "" },
