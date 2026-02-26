@@ -7,6 +7,7 @@ class VoiceCommandsController < AuthenticatedController
       local = r.fire_at.in_time_zone(current_user.timezone)
       [ local.hour, local.min ]
     }
+    @looping_reminders = current_user.looping_reminders.order(:number)
   end
 
   def create
