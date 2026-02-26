@@ -487,6 +487,29 @@ RSpec.describe CommandParser do
       end
     end
 
+    context "with a two-digit loop number" do
+      it "returns the full number, not just the first digit" do
+        result = parser.parse("run loop 12")
+
+        expect(result[:intent]).to eq(:run_loop)
+        expect(result[:params][:number]).to eq(12)
+      end
+
+      it "resolves spoken 'twelve' to 12" do
+        result = parser.parse("run loop twelve")
+
+        expect(result[:intent]).to eq(:run_loop)
+        expect(result[:params][:number]).to eq(12)
+      end
+
+      it "resolves spoken 'twenty one' to 21, not 20" do
+        result = parser.parse("run loop twenty one")
+
+        expect(result[:intent]).to eq(:run_loop)
+        expect(result[:params][:number]).to eq(21)
+      end
+    end
+
     context "with \"alias 'run loop 1' as 'remember the dishes'\"" do
       it "returns :alias_loop intent with number and target params" do
         result = parser.parse("alias 'run loop 1' as 'remember the dishes'")
@@ -506,6 +529,13 @@ RSpec.describe CommandParser do
         result = parser.parse("alias 'run looping reminder 3' as 'wash up'")
 
         expect(result[:params][:number]).to eq(3)
+      end
+
+      it "parses a two-digit loop number in the alias source" do
+        result = parser.parse("alias 'run loop 12' as 'morning meds'")
+
+        expect(result[:intent]).to eq(:alias_loop)
+        expect(result[:params][:number]).to eq(12)
       end
 
       it "matches case-insensitively" do
@@ -540,6 +570,15 @@ RSpec.describe CommandParser do
         expect(result[:intent]).to eq(:alias_loop)
         expect(result[:params][:number]).to eq(1)
         expect(result[:params][:target]).to eq("meds")
+      end
+    end
+
+    context "when the alias source does not contain a 'run loop N' reference" do
+      it "returns nil for number" do
+        result = parser.parse("alias morning routine as meds")
+
+        expect(result[:intent]).to eq(:alias_loop)
+        expect(result[:params][:number]).to be_nil
       end
     end
   end
