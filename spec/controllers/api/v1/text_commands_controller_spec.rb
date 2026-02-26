@@ -1,7 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Api::V1::TextCommandsController, type: :request do
-  let(:user) { create(:user, api_token: "valid_token") }
+  let(:user) { create(:user) }
+  let(:token) { user.api_token }
   let(:audio_bytes) { "\xFF\xFB\x90\x00response audio" }
   let(:responder) { instance_double(CommandResponder, respond: audio_bytes) }
 
@@ -20,6 +21,7 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
 
     context "with an invalid token" do
       it "returns 401" do
+        user
         post "/api/v1/text_commands",
           params: { transcript: "what time is it" },
           headers: { "Authorization" => "Bearer wrong_token" }
@@ -29,7 +31,7 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
     end
 
     context "with a valid token" do
-      let(:headers) { { "Authorization" => "Bearer valid_token" } }
+      let(:headers) { { "Authorization" => "Bearer #{token}" } }
 
       before { user }
 
@@ -57,6 +59,23 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
         post "/api/v1/text_commands", headers: headers
 
         expect(response).to have_http_status(:bad_request)
+      end
+
+      it "returns 422 and does not call the responder when transcript exceeds 1000 characters" do
+        post "/api/v1/text_commands",
+          params: { transcript: "a" * 1001 },
+          headers: headers
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(responder).not_to have_received(:respond)
+      end
+
+      it "accepts and processes a transcript of exactly 1000 characters" do
+        post "/api/v1/text_commands",
+          params: { transcript: "a" * 1000 },
+          headers: headers
+
+        expect(responder).to have_received(:respond)
       end
 
       it "returns 400 when transcript is blank" do

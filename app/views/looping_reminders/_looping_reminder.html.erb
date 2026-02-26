@@ -1,0 +1,14 @@
+<li id="<%= dom_id(looping_reminder) %>">
+  <span>
+    <%= looping_reminder.number %>
+    <% aliases = looping_reminder.command_aliases.map(&:phrase).join(", ") %>
+    <% if aliases.present? %>(<%= aliases %>)<% end %>
+    <% if looping_reminder.active? %>
+      · active
+    <% end %>
+    · remind every <%= looping_reminder.interval_minutes %>
+      <%= "min".pluralize(looping_reminder.interval_minutes) %>
+      '<%= looping_reminder.message %>'
+      until '<%= looping_reminder.stop_phrase %>'
+  </span>
+</li>

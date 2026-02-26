@@ -13,6 +13,8 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resources :text_commands, only: [ :create ]
+      resources :looping_reminders, only: [ :index ]
+      resource :pending_interaction, only: [ :show ]
     end
   end
 

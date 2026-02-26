@@ -32,12 +32,32 @@ Built with Claude Code and
 | "set a daily 7am reminder to write morning pages" | Confirms; speaks "It's 7:00 AM. Reminder: write morning pages" every day at 7:00 AM and reschedules automatically |
 | "set daily reminder at 7am to write morning pages" | Same — alternate word order for daily reminders |
 | "set daily reminder for 7am to write morning pages" | Same — "reminder for {time}" also works for daily |
-| _(anything else)_ | "Sorry, I didn't understand that" |
+| _(anything else)_ | "Sorry, I didn't understand that.  Please see the list of commands for voice commands I will understand." |
 
 **Notes:**
 - Number words are normalised before matching — "five minutes" and "5 minutes" both work.
 - If a reminder time has already passed today it is automatically scheduled for tomorrow, e.g. "Reminder set for 7:00 AM tomorrow to take medication".
 - Alerts are silently dropped if the browser tab is closed when the job fires.
+
+### Looping reminders
+
+A looping reminder fires on an interval and repeats until you say its stop phrase.
+
+| Say | Effect |
+|-----|--------|
+| "looping reminder for 5 minutes saying 'did you take your meds' until I say 'yes I did'" | Creates loop 1; confirms interval and stop phrase |
+| "looping reminder every 5 minutes saying 'did you take your meds' until I say 'yes I did'" | Same — "every" and "for" are both accepted |
+| _(your stop phrase, e.g. "yes I did")_ | Stops the loop; stop phrases match anywhere in your utterance |
+| "run loop 1" | Restarts a stopped loop |
+| "alias 'run loop 1' as 'meds'" | Creates the alias "meds"; saying "meds" now starts loop 1 |
+| "alias 'run loop 1' to 'meds'" | Same — "to" and "as" are both accepted |
+
+**Collision handling:** If the stop phrase or alias is already in use, the assistant asks for a different one. Say any new phrase to proceed, or "give up" to cancel.
+
+**Notes:**
+- Multiple loops can run simultaneously; each is assigned a number in order.
+- A stopped loop can be restarted with "run loop N"; an active loop cannot be started again.
+- Alias phrases are matched exactly (case-insensitive); stop phrases match if contained anywhere in your utterance.
 
 ## Setup
 

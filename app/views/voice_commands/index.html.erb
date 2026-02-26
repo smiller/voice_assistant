@@ -34,6 +34,12 @@
     <li class="empty-state">No active timers</li>
   </ul>
 
+  <h2>Looping Reminders</h2>
+  <ul id="looping_reminders">
+    <%= render @looping_reminders %>
+    <li class="empty-state">No looping reminders</li>
+  </ul>
+
   <h2>Reminders</h2>
   <ul id="reminders">
     <%= render @reminders %>
@@ -45,4 +51,37 @@
     <%= render @daily_reminders %>
     <li class="empty-state">No daily reminders</li>
   </ul>
+</section>
+
+<section class="va-commands">
+  <details>
+    <summary>Commands</summary>
+    <div class="va-commands__body">
+      <div class="va-commands__group">
+        <h3>General</h3>
+        <ul>
+          <li><q>what time is it</q></li>
+          <li><q>when is sunset</q></li>
+          <li><q>set a timer for 5 minutes</q></li>
+        </ul>
+      </div>
+      <div class="va-commands__group">
+        <h3>Reminders</h3>
+        <ul>
+          <li><q>set a 9pm reminder to take medication</q></li>
+          <li><q>set a 9:30pm reminder to take medication</q></li>
+          <li><q>set a daily 7am reminder to write morning pages</q></li>
+        </ul>
+      </div>
+      <div class="va-commands__group">
+        <h3>Looping reminders</h3>
+        <ul>
+          <li><q>looping reminder every 5 minutes saying did you take your meds until I say yes I did</q></li>
+          <li><q>run loop 1</q> — restart a stopped loop</li>
+          <li><q>alias 'run loop 1' as 'meds'</q> or <q>alias 'run loop 1' to 'meds'</q> — create a shortcut phrase</li>
+          <li>say your stop phrase — stops the loop</li>
+        </ul>
+      </div>
+    </div>
+  </details>
 </section>

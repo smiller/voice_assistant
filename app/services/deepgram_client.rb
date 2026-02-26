@@ -21,7 +21,9 @@ class DeepgramClient
     end
 
     data = JSON.parse(response.body)
-    data.dig("results", "channels", 0, "alternatives", 0, "transcript")
+    transcript = data.dig("results", "channels", 0, "alternatives", 0, "transcript")
+    Rails.logger.warn("DeepgramClient: blank transcript, response body: #{response.body}") if transcript.blank?
+    transcript
   rescue Error
     raise
   rescue StandardError => e

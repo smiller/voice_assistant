@@ -110,6 +110,26 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         expect(response.body).not_to include("reminder_#{past.id}")
       end
+
+      it "renders looping reminders ordered by number" do
+        high = create(:looping_reminder, user: user, number: 5)
+        low  = create(:looping_reminder, user: user, number: 2)
+
+        get "/voice_commands"
+
+        expect(response.body.index("looping_reminder_#{low.id}"))
+          .to be < response.body.index("looping_reminder_#{high.id}")
+      end
+
+      it "renders all looping reminders regardless of active state" do
+        active = create(:looping_reminder, user: user, active: true)
+        idle   = create(:looping_reminder, user: user, active: false)
+
+        get "/voice_commands"
+
+        expect(response.body).to include("looping_reminder_#{active.id}")
+        expect(response.body).to include("looping_reminder_#{idle.id}")
+      end
     end
   end
 
@@ -225,15 +245,30 @@ RSpec.describe VoiceCommandsController, type: :request do
         expect(response).to have_http_status(:unprocessable_entity)
       end
 
-      context "when Deepgram returns a blank transcript" do
-        let(:deepgram) { instance_double(DeepgramClient, transcribe: "") }
+      context "when the command is not recognised" do
+        let(:deepgram) { instance_double(DeepgramClient, transcribe: "blah blah blah") }
 
-        it "returns 400 without creating a VoiceCommand" do
+        it "sets the X-Status-Text header to the unknown intent message" do
+          post "/voice_commands", params: { audio: audio_file }
+
+          expect(response.headers["X-Status-Text"]).to eq(CommandResponder::UNKNOWN_INTENT_MESSAGE)
+        end
+      end
+
+      context "when Deepgram returns a blank transcript" do
+        let(:deepgram)     { instance_double(DeepgramClient, transcribe: "") }
+        let(:eleven_labs)  { instance_double(ElevenLabsClient, synthesize: "blank audio") }
+
+        before { allow(ElevenLabsClient).to receive(:new).and_return(eleven_labs) }
+
+        it "returns audio with the status-text header without creating a VoiceCommand" do
           expect {
             post "/voice_commands", params: { audio: audio_file }
           }.not_to change(VoiceCommand, :count)
 
-          expect(response).to have_http_status(:bad_request)
+          expect(response).to have_http_status(:ok)
+          expect(response.content_type).to eq("audio/mpeg")
+          expect(response.headers["X-Status-Text"]).to eq("Sorry, I didn't catch that.  Please try again.")
         end
       end
 

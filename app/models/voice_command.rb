@@ -2,12 +2,18 @@ class VoiceCommand < ApplicationRecord
   belongs_to :user
 
   enum :intent, {
-    time_check: "time_check",
-    sunset: "sunset",
-    timer: "timer",
-    reminder: "reminder",
+    time_check:     "time_check",
+    sunset:         "sunset",
+    timer:          "timer",
+    reminder:       "reminder",
     daily_reminder: "daily_reminder",
-    unknown: "unknown"
+    create_loop:    "create_loop",
+    run_loop:       "run_loop",
+    alias_loop:       "alias_loop",
+    stop_loop:        "stop_loop",
+    complete_pending: "complete_pending",
+    give_up:          "give_up",
+    unknown:        "unknown"
   }
 
   enum :status, {
