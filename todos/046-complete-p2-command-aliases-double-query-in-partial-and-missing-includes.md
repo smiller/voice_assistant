@@ -1,5 +1,5 @@
 ---
-status: pending
+status: complete
 priority: p2
 issue_id: "046"
 tags: [code-review, performance, looping-reminders, database, views]
