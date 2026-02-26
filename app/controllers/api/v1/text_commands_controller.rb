@@ -8,6 +8,7 @@ module Api
         return head :bad_request if transcript.blank?
         return head :unprocessable_entity if transcript.length > MAX_TRANSCRIPT_LENGTH
 
+        Rails.logger.info("[TextCommand] transcript: #{transcript.inspect}")
         command = LoopingReminderDispatcher.new.dispatch(transcript: transcript, user: @current_user)
         record  = VoiceCommand.create!(
           user:       @current_user,
