@@ -1,6 +1,9 @@
 class User < ApplicationRecord
   has_secure_password
   has_many :reminders, dependent: :destroy
+  has_many :looping_reminders, dependent: :destroy
+  has_many :command_aliases, dependent: :destroy
+  has_many :pending_interactions, dependent: :destroy
 
   after_initialize :set_defaults, if: :new_record?
 

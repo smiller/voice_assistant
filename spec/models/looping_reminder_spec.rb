@@ -1,0 +1,139 @@
+require "rails_helper"
+
+RSpec.describe LoopingReminder do
+  describe "associations" do
+    it "belongs to a user" do
+      loop = build(:looping_reminder)
+
+      expect(loop.user).to be_a(User)
+    end
+
+    it "has many command aliases" do
+      loop = create(:looping_reminder)
+      create(:command_alias, looping_reminder: loop)
+
+      expect(loop.command_aliases.count).to eq(1)
+    end
+
+    it "destroys dependent command aliases" do
+      loop = create(:looping_reminder)
+      create(:command_alias, looping_reminder: loop)
+
+      expect { loop.destroy }.to change(CommandAlias, :count).by(-1)
+    end
+  end
+
+  describe "validations" do
+    it "is valid with all required attributes" do
+      loop = build(:looping_reminder)
+
+      expect(loop).to be_valid
+    end
+
+    it "is invalid without a user" do
+      loop = build(:looping_reminder, user: nil)
+
+      expect(loop).not_to be_valid
+    end
+
+    it "is invalid without a message" do
+      loop = build(:looping_reminder, message: nil)
+
+      expect(loop).not_to be_valid
+    end
+
+    it "is invalid without a stop_phrase" do
+      loop = build(:looping_reminder, stop_phrase: nil)
+
+      expect(loop).not_to be_valid
+    end
+
+    it "is invalid with interval_minutes less than 1" do
+      loop = build(:looping_reminder, interval_minutes: 0)
+
+      expect(loop).not_to be_valid
+    end
+
+    it "is valid with interval_minutes of 1" do
+      loop = build(:looping_reminder, interval_minutes: 1)
+
+      expect(loop).to be_valid
+    end
+
+    it "is invalid with a duplicate number for the same user" do
+      user = create(:user)
+      create(:looping_reminder, user: user, number: 1)
+      duplicate = build(:looping_reminder, user: user, number: 1)
+
+      expect(duplicate).not_to be_valid
+    end
+
+    it "allows the same number for different users" do
+      create(:looping_reminder, number: 1)
+      other = build(:looping_reminder, number: 1)
+
+      expect(other).to be_valid
+    end
+  end
+
+  describe "#activate!" do
+    it "sets active to true" do
+      loop = create(:looping_reminder, active: false)
+
+      loop.activate!
+
+      expect(loop.reload.active).to be(true)
+    end
+  end
+
+  describe "#stop!" do
+    it "sets active to false" do
+      loop = create(:looping_reminder, active: true)
+
+      loop.stop!
+
+      expect(loop.reload.active).to be(false)
+    end
+  end
+
+  describe ".active_loops" do
+    it "returns only active looping reminders" do
+      active = create(:looping_reminder, active: true)
+      create(:looping_reminder, active: false)
+
+      expect(described_class.active_loops).to eq([ active ])
+    end
+  end
+
+  describe ".next_number_for" do
+    it "returns 1 when user has no loops" do
+      user = create(:user)
+
+      expect(described_class.next_number_for(user)).to eq(1)
+    end
+
+    it "returns max + 1 when user has existing loops" do
+      user = create(:user)
+      create(:looping_reminder, user: user, number: 1)
+      create(:looping_reminder, user: user, number: 2)
+
+      expect(described_class.next_number_for(user)).to eq(3)
+    end
+
+    it "returns max + 1 based on highest number, not insertion order" do
+      user = create(:user)
+      create(:looping_reminder, user: user, number: 5)
+      create(:looping_reminder, user: user, number: 2)
+
+      expect(described_class.next_number_for(user)).to eq(6)
+    end
+
+    it "scopes number sequence per user" do
+      user1 = create(:user)
+      user2 = create(:user)
+      create(:looping_reminder, user: user1, number: 5)
+
+      expect(described_class.next_number_for(user2)).to eq(1)
+    end
+  end
+end
