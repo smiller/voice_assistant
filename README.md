@@ -32,7 +32,7 @@ Built with Claude Code and
 | "set a daily 7am reminder to write morning pages" | Confirms; speaks "It's 7:00 AM. Reminder: write morning pages" every day at 7:00 AM and reschedules automatically |
 | "set daily reminder at 7am to write morning pages" | Same — alternate word order for daily reminders |
 | "set daily reminder for 7am to write morning pages" | Same — "reminder for {time}" also works for daily |
-| _(anything else)_ | "Sorry, I didn't understand that" |
+| _(anything else)_ | "Sorry, I didn't understand that.  Please see the list of commands for voice commands I will understand." |
 
 **Notes:**
 - Number words are normalised before matching — "five minutes" and "5 minutes" both work.
