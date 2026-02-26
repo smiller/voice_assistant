@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_26_032248) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_26_051715) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -57,6 +57,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_032248) do
     t.boolean "active", default: false, null: false
     t.datetime "created_at", null: false
     t.integer "interval_minutes", null: false
+    t.integer "job_epoch", default: 0, null: false
     t.text "message", null: false
     t.integer "number", null: false
     t.string "stop_phrase", null: false
@@ -213,7 +214,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_032248) do
   end
 
   create_table "users", force: :cascade do |t|
-    t.string "api_token"
+    t.string "api_token_digest"
     t.datetime "created_at", null: false
     t.string "elevenlabs_voice_id"
     t.string "email", null: false
@@ -222,7 +223,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_032248) do
     t.string "password_digest"
     t.string "timezone"
     t.datetime "updated_at", null: false
-    t.index ["api_token"], name: "index_users_on_api_token", unique: true
+    t.index ["api_token_digest"], name: "index_users_on_api_token_digest", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 

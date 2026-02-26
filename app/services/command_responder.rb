@@ -229,7 +229,7 @@ class CommandResponder
 
   def schedule_loop_job(reminder)
     fire_at = reminder.interval_minutes.minutes.from_now
-    LoopingReminderJob.set(wait_until: fire_at).perform_later(reminder.id, fire_at)
+    LoopingReminderJob.set(wait_until: fire_at).perform_later(reminder.id, fire_at, reminder.job_epoch)
   end
 
   def broadcast_loop_append(reminder)

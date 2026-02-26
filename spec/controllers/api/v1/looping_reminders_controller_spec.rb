@@ -1,8 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Api::V1::LoopingRemindersController, type: :request do
-  let(:user) { create(:user, api_token: "valid_token") }
-  let(:headers) { { "Authorization" => "Bearer valid_token" } }
+  let(:user) { create(:user) }
+  let(:headers) { { "Authorization" => "Bearer #{user.api_token}" } }
 
   before { user }
 
@@ -76,7 +76,7 @@ RSpec.describe Api::V1::LoopingRemindersController, type: :request do
       end
 
       it "does not return another user's looping reminders" do
-        other_user = create(:user, api_token: "other_token")
+        other_user = create(:user)
         create(:looping_reminder, user: other_user, number: 1)
 
         get "/api/v1/looping_reminders", headers: headers

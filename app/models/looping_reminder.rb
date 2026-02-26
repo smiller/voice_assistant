@@ -10,7 +10,7 @@ class LoopingReminder < ApplicationRecord
   scope :active_loops, -> { where(active: true) }
 
   def activate!
-    update!(active: true)
+    update!(active: true, job_epoch: job_epoch + 1)
   end
 
   def stop!

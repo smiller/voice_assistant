@@ -19,7 +19,7 @@ RSpec.describe LoopingReminderJob do
   describe "#perform" do
     context "when the looping reminder does not exist" do
       it "does nothing" do
-        expect { described_class.perform_now(0, scheduled_fire_at) }.not_to raise_error
+        expect { described_class.perform_now(0, scheduled_fire_at, 0) }.not_to raise_error
         expect(tts_client).not_to have_received(:synthesize)
       end
     end
@@ -28,13 +28,31 @@ RSpec.describe LoopingReminderJob do
       before { reminder.stop! }
 
       it "does not synthesize audio" do
-        described_class.perform_now(reminder.id, scheduled_fire_at)
+        described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
 
         expect(tts_client).not_to have_received(:synthesize)
       end
 
       it "does not re-enqueue itself" do
-        described_class.perform_now(reminder.id, scheduled_fire_at)
+        described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
+
+        expect(described_class).not_to have_received(:set)
+      end
+    end
+
+    context "when the epoch does not match the reminder's current epoch" do
+      it "does not synthesize audio" do
+        stale_epoch = reminder.job_epoch - 1
+
+        described_class.perform_now(reminder.id, scheduled_fire_at, stale_epoch)
+
+        expect(tts_client).not_to have_received(:synthesize)
+      end
+
+      it "does not re-enqueue itself" do
+        stale_epoch = reminder.job_epoch - 1
+
+        described_class.perform_now(reminder.id, scheduled_fire_at, stale_epoch)
 
         expect(described_class).not_to have_received(:set)
       end
@@ -42,7 +60,7 @@ RSpec.describe LoopingReminderJob do
 
     context "when the looping reminder is active" do
       it "synthesizes the loop message" do
-        described_class.perform_now(reminder.id, scheduled_fire_at)
+        described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
 
         expect(tts_client).to have_received(:synthesize).with(
           text: reminder.message,
@@ -53,7 +71,7 @@ RSpec.describe LoopingReminderJob do
       it "writes audio to cache under a user-scoped hex token key expiring in 5 minutes" do
         allow(SecureRandom).to receive(:hex).and_return("abc123")
 
-        described_class.perform_now(reminder.id, scheduled_fire_at)
+        described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
 
         expect(cache_store.read("voice_alert_#{user.id}_abc123")).to eq(audio_bytes)
       end
@@ -63,7 +81,7 @@ RSpec.describe LoopingReminderJob do
         base_time = Time.current
 
         travel_to(base_time) do
-          described_class.perform_now(reminder.id, scheduled_fire_at)
+          described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
         end
 
         # Still present just before 5 minutes
@@ -80,7 +98,7 @@ RSpec.describe LoopingReminderJob do
       it "broadcasts to voice_alerts with the token in locals" do
         allow(SecureRandom).to receive(:hex).and_return("mytoken")
 
-        described_class.perform_now(reminder.id, scheduled_fire_at)
+        described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
 
         expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to).with(
           user,
@@ -93,16 +111,27 @@ RSpec.describe LoopingReminderJob do
       it "re-enqueues itself at scheduled_fire_at + interval" do
         next_fire_at = scheduled_fire_at + 5.minutes
 
-        described_class.perform_now(reminder.id, scheduled_fire_at)
+        described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
 
         expect(described_class).to have_received(:set).with(wait_until: next_fire_at)
+      end
+
+      it "re-enqueues with the same epoch" do
+        job_proxy = double("job_proxy", perform_later: nil)
+        allow(described_class).to receive(:set).and_return(job_proxy)
+        next_fire_at = scheduled_fire_at + 5.minutes
+
+        described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
+
+        expect(job_proxy).to have_received(:perform_later)
+          .with(reminder.id, next_fire_at, reminder.job_epoch)
       end
 
       it "uses scheduled_fire_at for drift-free interval calculation" do
         old_fire = 1.hour.ago
         next_expected = old_fire + 5.minutes
 
-        described_class.perform_now(reminder.id, old_fire)
+        described_class.perform_now(reminder.id, old_fire, reminder.job_epoch)
 
         expect(described_class).to have_received(:set).with(wait_until: next_expected)
       end
@@ -112,17 +141,17 @@ RSpec.describe LoopingReminderJob do
       before { allow(tts_client).to receive(:synthesize).and_raise(ElevenLabsClient::Error) }
 
       it "does not propagate (retry is handled by the framework)" do
-        expect { described_class.perform_now(reminder.id, scheduled_fire_at) }.not_to raise_error
+        expect { described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch) }.not_to raise_error
       end
 
       it "re-enqueues for retry rather than discarding" do
         expect {
-          described_class.perform_now(reminder.id, scheduled_fire_at)
+          described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
         }.to have_enqueued_job(described_class)
       end
 
       it "does not enqueue its own chained next-fire job" do
-        described_class.perform_now(reminder.id, scheduled_fire_at)
+        described_class.perform_now(reminder.id, scheduled_fire_at, reminder.job_epoch)
 
         expect(described_class).not_to have_received(:set)
       end

@@ -112,6 +112,14 @@ RSpec.describe LoopingReminder do
     end
   end
 
+  describe "#job_epoch" do
+    it "is 0 for a new looping reminder" do
+      loop = create(:looping_reminder)
+
+      expect(loop.job_epoch).to eq(0)
+    end
+  end
+
   describe "#activate!" do
     it "sets active to true" do
       loop = create(:looping_reminder, active: false)
@@ -119,6 +127,24 @@ RSpec.describe LoopingReminder do
       loop.activate!
 
       expect(loop.reload.active).to be(true)
+    end
+
+    it "increments job_epoch by 1" do
+      loop = create(:looping_reminder, active: false)
+
+      loop.activate!
+
+      expect(loop.reload.job_epoch).to eq(1)
+    end
+
+    it "increments job_epoch on each successive activation" do
+      loop = create(:looping_reminder, active: false)
+      loop.activate!
+      loop.stop!
+
+      loop.activate!
+
+      expect(loop.reload.job_epoch).to eq(2)
     end
   end
 
@@ -129,6 +155,15 @@ RSpec.describe LoopingReminder do
       loop.stop!
 
       expect(loop.reload.active).to be(false)
+    end
+
+    it "does not change job_epoch" do
+      loop = create(:looping_reminder, active: true)
+      original_epoch = loop.job_epoch
+
+      loop.stop!
+
+      expect(loop.reload.job_epoch).to eq(original_epoch)
     end
   end
 

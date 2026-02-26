@@ -169,6 +169,148 @@ RSpec.describe User do
     end
   end
 
+  describe "#api_token" do
+    it "is generated automatically on create" do
+      user = create(:user)
+
+      expect(user.api_token).to be_present
+    end
+
+    it "generates a token of at least 24 characters" do
+      user = create(:user)
+
+      expect(user.api_token.length).to be >= 24
+    end
+
+    it "stores a SHA-256 digest — not the raw token — in api_token_digest" do
+      user = create(:user)
+      raw = user.api_token
+      expected_digest = OpenSSL::Digest::SHA256.hexdigest(raw)
+
+      expect(user.api_token_digest).to eq(expected_digest)
+      expect(user.api_token_digest).not_to eq(raw)
+    end
+  end
+
+  describe "#authenticate_api_token" do
+    it "returns true with the correct token" do
+      user = create(:user)
+      token = user.api_token
+
+      expect(user.authenticate_api_token(token)).to be(true)
+    end
+
+    it "returns false with an incorrect token" do
+      user = create(:user)
+
+      expect(user.authenticate_api_token("wrong_token")).to be(false)
+    end
+
+    it "returns false when given the digest string instead of the raw token" do
+      user = create(:user)
+
+      expect(user.authenticate_api_token(user.api_token_digest)).to be(false)
+    end
+
+    it "returns false when api_token_digest is nil" do
+      user = create(:user)
+      user.update_column(:api_token_digest, nil)
+
+      expect(user.authenticate_api_token("any_token")).to be(false)
+    end
+  end
+
+  describe "#regenerate_api_token" do
+    it "produces a new raw token different from the original" do
+      user = create(:user)
+      old_token = user.api_token
+
+      user.regenerate_api_token
+
+      expect(user.api_token).not_to eq(old_token)
+    end
+
+    it "generates a new token of at least 24 characters" do
+      user = create(:user)
+
+      user.regenerate_api_token
+
+      expect(user.api_token.length).to be >= 24
+    end
+
+    it "makes the new token authenticate successfully" do
+      user = create(:user)
+      user.regenerate_api_token
+      new_token = user.api_token
+
+      expect(user.authenticate_api_token(new_token)).to be(true)
+    end
+
+    it "invalidates the old token" do
+      user = create(:user)
+      old_token = user.api_token
+
+      user.regenerate_api_token
+
+      expect(user.authenticate_api_token(old_token)).to be(false)
+    end
+
+    it "persists the new digest to the database" do
+      user = create(:user)
+
+      user.regenerate_api_token
+
+      persisted_digest = user.reload.api_token_digest
+      expect(user.authenticate_api_token(user.api_token)).to be(true)
+      expect(OpenSSL::Digest::SHA256.hexdigest(user.api_token)).to eq(persisted_digest)
+    end
+  end
+
+  describe ".find_by_api_token" do
+    it "returns the matching user for a valid token" do
+      user = create(:user)
+      token = user.api_token
+
+      expect(described_class.find_by_api_token(token)).to eq(user)
+    end
+
+    it "returns nil when no user has that token" do
+      create(:user)
+
+      expect(described_class.find_by_api_token("nonexistent_token")).to be_nil
+    end
+
+    it "returns nil when given the digest string instead of the raw token" do
+      user = create(:user)
+
+      expect(described_class.find_by_api_token(user.api_token_digest)).to be_nil
+    end
+
+    it "does not return another user" do
+      user1 = create(:user)
+      create(:user)
+      token = user1.api_token
+
+      expect(described_class.find_by_api_token(token)).to eq(user1)
+    end
+  end
+
+  describe ".digest_api_token" do
+    it "returns a 64-character hex SHA-256 digest" do
+      digest = described_class.digest_api_token("any_token")
+
+      expect(digest).to match(/\A[0-9a-f]{64}\z/)
+    end
+
+    it "produces the same digest for the same input" do
+      expect(described_class.digest_api_token("abc")).to eq(described_class.digest_api_token("abc"))
+    end
+
+    it "produces different digests for different inputs" do
+      expect(described_class.digest_api_token("abc")).not_to eq(described_class.digest_api_token("xyz"))
+    end
+  end
+
   describe "#authenticate" do
     let(:user) { create(:user, password: "correct_horse") }
 

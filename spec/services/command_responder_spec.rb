@@ -446,7 +446,7 @@ RSpec.describe CommandResponder do
     end
 
     shared_examples "schedules LoopingReminderJob" do
-      it "schedules LoopingReminderJob with exact timing and loop arguments" do
+      it "schedules LoopingReminderJob with exact timing, loop id, and epoch" do
         freeze_time do
           job_proxy = double("job_proxy", perform_later: nil)
           allow(LoopingReminderJob).to receive(:set).and_return(job_proxy)
@@ -457,7 +457,7 @@ RSpec.describe CommandResponder do
           expect(LoopingReminderJob).to have_received(:set)
             .with(wait_until: created_reminder.interval_minutes.minutes.from_now)
           expect(job_proxy).to have_received(:perform_later)
-            .with(created_reminder.id, created_reminder.interval_minutes.minutes.from_now)
+            .with(created_reminder.id, created_reminder.interval_minutes.minutes.from_now, created_reminder.job_epoch)
         end
       end
     end
@@ -667,10 +667,19 @@ RSpec.describe CommandResponder do
         expect(reminder.reload.active).to be(true)
       end
 
-      it "schedules LoopingReminderJob when activating" do
-        responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
+      it "schedules LoopingReminderJob with the incremented epoch after activation" do
+        freeze_time do
+          job_proxy = double("job_proxy", perform_later: nil)
+          allow(LoopingReminderJob).to receive(:set).and_return(job_proxy)
 
-        expect(LoopingReminderJob).to have_received(:set)
+          responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
+          new_epoch = reminder.reload.job_epoch
+
+          expect(LoopingReminderJob).to have_received(:set)
+            .with(wait_until: reminder.interval_minutes.minutes.from_now)
+          expect(job_proxy).to have_received(:perform_later)
+            .with(reminder.id, reminder.interval_minutes.minutes.from_now, new_epoch)
+        end
       end
 
       it_behaves_like "broadcasts loop replace"

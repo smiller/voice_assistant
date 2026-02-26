@@ -1,7 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Api::V1::TextCommandsController, type: :request do
-  let(:user) { create(:user, api_token: "valid_token") }
+  let(:user) { create(:user) }
+  let(:token) { user.api_token }
   let(:audio_bytes) { "\xFF\xFB\x90\x00response audio" }
   let(:responder) { instance_double(CommandResponder, respond: audio_bytes) }
 
@@ -20,6 +21,7 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
 
     context "with an invalid token" do
       it "returns 401" do
+        user
         post "/api/v1/text_commands",
           params: { transcript: "what time is it" },
           headers: { "Authorization" => "Bearer wrong_token" }
@@ -29,7 +31,7 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
     end
 
     context "with a valid token" do
-      let(:headers) { { "Authorization" => "Bearer valid_token" } }
+      let(:headers) { { "Authorization" => "Bearer #{token}" } }
 
       before { user }
 
