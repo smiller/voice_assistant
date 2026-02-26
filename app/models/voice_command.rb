@@ -9,9 +9,10 @@ class VoiceCommand < ApplicationRecord
     daily_reminder: "daily_reminder",
     create_loop:    "create_loop",
     run_loop:       "run_loop",
-    alias_loop:     "alias_loop",
-    stop_loop:      "stop_loop",
-    give_up:        "give_up",
+    alias_loop:       "alias_loop",
+    stop_loop:        "stop_loop",
+    complete_pending: "complete_pending",
+    give_up:          "give_up",
     unknown:        "unknown"
   }
 

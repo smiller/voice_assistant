@@ -1,9 +1,10 @@
 class VoiceAlertsController < AuthenticatedController
   def show
-    audio = Rails.cache.read("reminder_audio_#{params[:id]}")
+    key = "voice_alert_#{current_user.id}_#{params[:id]}"
+    audio = Rails.cache.read(key)
     return head :not_found unless audio
 
-    Rails.cache.delete("reminder_audio_#{params[:id]}")
+    Rails.cache.delete(key)
     send_data audio, type: "audio/mpeg", disposition: "inline"
   end
 end

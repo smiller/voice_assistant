@@ -5,8 +5,8 @@ class LoopingReminderDispatcher
     pending = PendingInteraction.for(user)
     return handle_pending_interaction(pending, transcript, user) if pending
 
-    if (loop = match_stop_phrase(transcript, user))
-      return { intent: :stop_loop, params: { looping_reminder_id: loop.id } }
+    if (reminder = match_stop_phrase(transcript, user))
+      return { intent: :stop_loop, params: { looping_reminder_id: reminder.id } }
     end
 
     if (al = match_alias(transcript, user))

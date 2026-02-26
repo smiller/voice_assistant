@@ -5,20 +5,20 @@ class LoopingReminderJob < ApplicationJob
   discard_on StandardError
 
   def perform(looping_reminder_id, scheduled_fire_at)
-    loop = LoopingReminder.find_by(id: looping_reminder_id)
-    return unless loop&.active?
+    reminder = LoopingReminder.find_by(id: looping_reminder_id)
+    return unless reminder&.active?
 
-    audio = ElevenLabsClient.new.synthesize(text: loop.message, voice_id: loop.user.elevenlabs_voice_id)
+    audio = ElevenLabsClient.new.synthesize(text: reminder.message, voice_id: reminder.user.elevenlabs_voice_id)
     token = SecureRandom.hex
-    Rails.cache.write("looping_reminder_audio_#{token}", audio, expires_in: 5.minutes)
+    Rails.cache.write("voice_alert_#{reminder.user.id}_#{token}", audio, expires_in: 5.minutes)
     Turbo::StreamsChannel.broadcast_append_to(
-      loop.user,
+      reminder.user,
       target: "voice_alerts",
       partial: "voice_alerts/alert",
       locals: { token: token }
     )
 
-    next_fire_at = scheduled_fire_at + loop.interval_minutes.minutes
-    LoopingReminderJob.set(wait_until: next_fire_at).perform_later(loop.id, next_fire_at)
+    next_fire_at = scheduled_fire_at + reminder.interval_minutes.minutes
+    LoopingReminderJob.set(wait_until: next_fire_at).perform_later(reminder.id, next_fire_at)
   end
 end

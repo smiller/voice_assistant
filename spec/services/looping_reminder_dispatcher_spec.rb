@@ -16,30 +16,30 @@ RSpec.describe LoopingReminderDispatcher do
 
     context "stop phrase matching" do
       it "returns :stop_loop when transcript contains an active loop's stop phrase" do
-        loop = create(:looping_reminder, user: user, stop_phrase: "doing the dishes", active: true)
+        reminder = create(:looping_reminder, user: user, stop_phrase: "doing the dishes", active: true)
 
         result = dispatcher.dispatch(transcript: "I am doing the dishes now", user: user)
 
         expect(result[:intent]).to eq(:stop_loop)
-        expect(result[:params][:looping_reminder_id]).to eq(loop.id)
+        expect(result[:params][:looping_reminder_id]).to eq(reminder.id)
       end
 
       it "is case-insensitive on the transcript side" do
-        loop = create(:looping_reminder, user: user, stop_phrase: "doing the dishes", active: true)
+        reminder = create(:looping_reminder, user: user, stop_phrase: "doing the dishes", active: true)
 
         result = dispatcher.dispatch(transcript: "DOING THE DISHES", user: user)
 
         expect(result[:intent]).to eq(:stop_loop)
-        expect(result[:params][:looping_reminder_id]).to eq(loop.id)
+        expect(result[:params][:looping_reminder_id]).to eq(reminder.id)
       end
 
       it "is case-insensitive on the stop phrase side" do
-        loop = create(:looping_reminder, user: user, stop_phrase: "Doing The Dishes", active: true)
+        reminder = create(:looping_reminder, user: user, stop_phrase: "Doing The Dishes", active: true)
 
         result = dispatcher.dispatch(transcript: "doing the dishes", user: user)
 
         expect(result[:intent]).to eq(:stop_loop)
-        expect(result[:params][:looping_reminder_id]).to eq(loop.id)
+        expect(result[:params][:looping_reminder_id]).to eq(reminder.id)
       end
 
       it "does not match when transcript does not contain the stop phrase" do
@@ -70,8 +70,8 @@ RSpec.describe LoopingReminderDispatcher do
 
     context "alias matching" do
       it "returns :run_loop when transcript exactly matches an alias phrase" do
-        loop = create(:looping_reminder, user: user, number: 2)
-        create(:command_alias, user: user, looping_reminder: loop, phrase: "remember the dishes")
+        reminder = create(:looping_reminder, user: user, number: 2)
+        create(:command_alias, user: user, looping_reminder: reminder, phrase: "remember the dishes")
 
         result = dispatcher.dispatch(transcript: "remember the dishes", user: user)
 
@@ -80,8 +80,8 @@ RSpec.describe LoopingReminderDispatcher do
       end
 
       it "is case-insensitive for alias matching" do
-        loop = create(:looping_reminder, user: user, number: 1)
-        create(:command_alias, user: user, looping_reminder: loop, phrase: "Remember The Dishes")
+        reminder = create(:looping_reminder, user: user, number: 1)
+        create(:command_alias, user: user, looping_reminder: reminder, phrase: "Remember The Dishes")
 
         result = dispatcher.dispatch(transcript: "remember the dishes", user: user)
 
@@ -89,8 +89,8 @@ RSpec.describe LoopingReminderDispatcher do
       end
 
       it "strips whitespace from the transcript before matching" do
-        loop = create(:looping_reminder, user: user, number: 1)
-        create(:command_alias, user: user, looping_reminder: loop, phrase: "remember the dishes")
+        reminder = create(:looping_reminder, user: user, number: 1)
+        create(:command_alias, user: user, looping_reminder: reminder, phrase: "remember the dishes")
 
         result = dispatcher.dispatch(transcript: "  remember the dishes  ", user: user)
 
@@ -98,8 +98,8 @@ RSpec.describe LoopingReminderDispatcher do
       end
 
       it "does not match aliases with extra words" do
-        loop = create(:looping_reminder, user: user, number: 1)
-        create(:command_alias, user: user, looping_reminder: loop, phrase: "remember the dishes")
+        reminder = create(:looping_reminder, user: user, number: 1)
+        create(:command_alias, user: user, looping_reminder: reminder, phrase: "remember the dishes")
 
         result = dispatcher.dispatch(transcript: "please remember the dishes", user: user)
 
@@ -109,14 +109,14 @@ RSpec.describe LoopingReminderDispatcher do
 
     context "stop phrase takes priority over alias" do
       it "returns :stop_loop when transcript matches both a stop phrase and an alias" do
-        active_loop = create(:looping_reminder, user: user, stop_phrase: "do the dishes", active: true)
-        other_loop  = create(:looping_reminder, user: user)
-        create(:command_alias, user: user, looping_reminder: other_loop, phrase: "do the dishes")
+        active_reminder = create(:looping_reminder, user: user, stop_phrase: "do the dishes", active: true)
+        other_reminder  = create(:looping_reminder, user: user)
+        create(:command_alias, user: user, looping_reminder: other_reminder, phrase: "do the dishes")
 
         result = dispatcher.dispatch(transcript: "do the dishes", user: user)
 
         expect(result[:intent]).to eq(:stop_loop)
-        expect(result[:params][:looping_reminder_id]).to eq(active_loop.id)
+        expect(result[:params][:looping_reminder_id]).to eq(active_reminder.id)
       end
     end
 
@@ -167,8 +167,8 @@ RSpec.describe LoopingReminderDispatcher do
       end
 
       it "returns replacement_phrase_taken error when replacement phrase matches an existing alias" do
-        loop = create(:looping_reminder, user: user)
-        create(:command_alias, user: user, looping_reminder: loop, phrase: "taken alias")
+        reminder = create(:looping_reminder, user: user)
+        create(:command_alias, user: user, looping_reminder: reminder, phrase: "taken alias")
 
         result = dispatcher.dispatch(transcript: "taken alias", user: user)
 
@@ -220,8 +220,8 @@ RSpec.describe LoopingReminderDispatcher do
       end
 
       it "blocks a replacement phrase that matches an existing alias phrase case-insensitively" do
-        loop = create(:looping_reminder, user: user)
-        create(:command_alias, user: user, looping_reminder: loop, phrase: "taken alias")
+        reminder = create(:looping_reminder, user: user)
+        create(:command_alias, user: user, looping_reminder: reminder, phrase: "taken alias")
 
         result = dispatcher.dispatch(transcript: "TAKEN ALIAS", user: user)
 
@@ -229,8 +229,8 @@ RSpec.describe LoopingReminderDispatcher do
       end
 
       it "does not block a free phrase when user has aliases with different phrases" do
-        loop = create(:looping_reminder, user: user)
-        create(:command_alias, user: user, looping_reminder: loop, phrase: "some other alias")
+        reminder = create(:looping_reminder, user: user)
+        create(:command_alias, user: user, looping_reminder: reminder, phrase: "some other alias")
 
         result = dispatcher.dispatch(transcript: "a brand new phrase", user: user)
 

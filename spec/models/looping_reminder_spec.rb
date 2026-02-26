@@ -106,6 +106,19 @@ RSpec.describe LoopingReminder do
   end
 
   describe ".next_number_for" do
+    it "issues a SELECT FOR UPDATE to prevent concurrent duplicate numbers" do
+      user = create(:user)
+      sql_log = []
+      subscriber = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+        sql_log << payload[:sql]
+      end
+
+      described_class.next_number_for(user)
+
+      ActiveSupport::Notifications.unsubscribe(subscriber)
+      expect(sql_log.any? { |sql| sql.include?("FOR UPDATE") }).to be(true)
+    end
+
     it "returns 1 when user has no loops" do
       user = create(:user)
 

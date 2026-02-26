@@ -4,15 +4,15 @@ RSpec.describe VoiceAlertsController, type: :request do
   let(:user) { create(:user) }
   let(:audio_bytes) { "\xFF\xFB\x90\x00".b }
   let(:token) { "abc123" }
-  let(:cache_key) { "reminder_audio_#{token}" }
+  let(:cache_key) { "voice_alert_#{user.id}_#{token}" }
   let(:cache_store) { ActiveSupport::Cache::MemoryStore.new }
 
   before do
     allow(Rails).to receive(:cache).and_return(cache_store)
   end
 
-  def log_in
-    post "/session", params: { email: user.email, password: "s3cr3tpassword" }
+  def log_in(as: user)
+    post "/session", params: { email: as.email, password: "s3cr3tpassword" }
   end
 
   describe "GET /voice_alerts/:id" do
@@ -53,6 +53,21 @@ RSpec.describe VoiceAlertsController, type: :request do
         get "/voice_alerts/#{token}"
 
         expect(cache_store.read(cache_key)).to be_nil
+      end
+    end
+
+    context "when another user's token is used (IDOR prevention)" do
+      let(:other_user) { create(:user) }
+
+      before do
+        log_in(as: other_user)
+        cache_store.write(cache_key, audio_bytes)
+      end
+
+      it "returns 404 for the other user" do
+        get "/voice_alerts/#{token}"
+
+        expect(response).to have_http_status(:not_found)
       end
     end
   end

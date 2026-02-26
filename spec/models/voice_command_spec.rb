@@ -40,7 +40,7 @@ RSpec.describe VoiceCommand do
 
   describe "enums" do
     it "defines intent values" do
-      expect(VoiceCommand.intents.keys).to match_array(%w[time_check sunset timer reminder daily_reminder create_loop run_loop stop_loop alias_loop give_up unknown])
+      expect(VoiceCommand.intents.keys).to match_array(%w[time_check sunset timer reminder daily_reminder create_loop run_loop stop_loop alias_loop complete_pending give_up unknown])
     end
 
     it "defines status values" do
