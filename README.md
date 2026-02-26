@@ -46,6 +46,7 @@ A looping reminder fires on an interval and repeats until you say its stop phras
 | Say | Effect |
 |-----|--------|
 | "looping reminder for 5 minutes saying 'did you take your meds' until I say 'yes I did'" | Creates loop 1; confirms interval and stop phrase |
+| "looping reminder every 5 minutes saying 'did you take your meds' until I say 'yes I did'" | Same — "every" and "for" are both accepted |
 | _(your stop phrase, e.g. "yes I did")_ | Stops the loop; stop phrases match anywhere in your utterance |
 | "run loop 1" | Restarts a stopped loop |
 | "alias 'run loop 1' as 'meds'" | Creates the alias "meds"; saying "meds" now starts loop 1 |
