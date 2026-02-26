@@ -17,13 +17,11 @@ class CommandResponder
   def response_text(command, user)
     case command[:intent]
     when :time_check, :sunset
-      time_or_sunset_text(command[:intent], user)
+      simple_command_text(command[:intent], user)
     when :timer
-      minutes = command[:params][:minutes]
-      "Timer set for #{minutes} #{"minute".pluralize(minutes)}"
+      timer_text(command[:params][:minutes])
     when :daily_reminder
-      params = command[:params]
-      "Daily reminder: #{format_time(params[:hour], params[:minute])} - #{params[:message]}"
+      daily_reminder_text(command[:params])
     when :reminder
       reminder_response_text(command[:params], user)
     when :create_loop, :run_loop, :stop_loop, :alias_loop, :complete_pending, :give_up
@@ -61,15 +59,23 @@ class CommandResponder
     end
   end
 
-  def time_or_sunset_text(intent, user)
+  def simple_command_text(intent, user)
     if intent == :time_check
       time = Time.current.in_time_zone(user.timezone)
       "The time is #{time.strftime("%-I:%M %p")}"
-    else
+    elsif intent == :sunset
       sunset = @geo_client.sunset_time(lat: user.lat, lng: user.lng)
       local = sunset.in_time_zone(user.timezone)
       "Sunset today is at #{local.strftime("%-I:%M %p")}"
     end
+  end
+
+  def timer_text(minutes)
+    "Timer set for #{minutes} #{"minute".pluralize(minutes)}"
+  end
+
+  def daily_reminder_text(params)
+    "Daily reminder: #{format_time(params[:hour], params[:minute])} - #{params[:message]}"
   end
 
   def schedule_reminder(command, user)
