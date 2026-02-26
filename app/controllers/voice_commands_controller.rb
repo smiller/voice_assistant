@@ -19,7 +19,7 @@ class VoiceCommandsController < AuthenticatedController
     transcript = DeepgramClient.new.transcribe(audio: audio.read)
     return head :bad_request if transcript.blank?
 
-    parsed = CommandParser.new.parse(transcript)
+    parsed = LoopingReminderDispatcher.new.dispatch(transcript: transcript, user: current_user)
     command = VoiceCommand.create!(
       user: current_user,
       transcript: transcript,

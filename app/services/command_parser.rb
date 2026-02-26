@@ -23,6 +23,19 @@ class CommandParser
       return { intent: :timer, params: { minutes: m[1].to_i } }
     end
 
+    if (m = normalized.match(/\blooping\s+reminder\s+for\s+(\d+)\s+minutes?\s+saying\s+'([^']+)'\s+until\s+I\s+say\s+'([^']+)'/i))
+      return { intent: :create_loop,
+               params: { interval_minutes: m[1].to_i, message: m[2].strip, stop_phrase: m[3].strip } }
+    end
+
+    if (m = normalized.match(/\balias\s+'([^']+)'\s+as\s+'([^']+)'/i))
+      return { intent: :alias_loop, params: { source: m[1].strip, target: m[2].strip } }
+    end
+
+    if (m = normalized.match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i))
+      return { intent: :run_loop, params: { number: m[1].to_i } }
+    end
+
     if (m = daily_reminder_match(normalized))
       return { intent: :daily_reminder, params: reminder_params(m) }
     end

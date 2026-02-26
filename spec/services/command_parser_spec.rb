@@ -405,5 +405,87 @@ RSpec.describe CommandParser do
         expect(result[:params][:message]).to eq("write morning pages")
       end
     end
+
+    context "with 'set a looping reminder for 5 minutes saying X until I say Y'" do
+      it "returns :create_loop intent with interval, message, and stop_phrase" do
+        result = parser.parse("set a looping reminder for 5 minutes saying 'have you done the dishes?' until I say 'doing the dishes'")
+
+        expect(result[:intent]).to eq(:create_loop)
+        expect(result[:params][:interval_minutes]).to eq(5)
+        expect(result[:params][:message]).to eq("have you done the dishes?")
+        expect(result[:params][:stop_phrase]).to eq("doing the dishes")
+      end
+
+      it "strips whitespace from message and stop_phrase" do
+        result = parser.parse("set a looping reminder for 5 minutes saying ' check in ' until I say ' done '")
+
+        expect(result[:params][:message]).to eq("check in")
+        expect(result[:params][:stop_phrase]).to eq("done")
+      end
+    end
+
+    context "with 'looping reminder for N minutes' using number words" do
+      it "converts word to integer for interval_minutes" do
+        result = parser.parse("set a looping reminder for ten minutes saying 'check in' until I say 'done'")
+
+        expect(result[:intent]).to eq(:create_loop)
+        expect(result[:params][:interval_minutes]).to eq(10)
+      end
+    end
+
+    context "with uppercased looping reminder command" do
+      it "matches case-insensitively" do
+        result = parser.parse("SET A LOOPING REMINDER FOR 5 MINUTES SAYING 'check in' UNTIL I SAY 'done'")
+
+        expect(result[:intent]).to eq(:create_loop)
+      end
+    end
+
+    context "with 'run loop 1'" do
+      it "returns :run_loop intent with number param" do
+        result = parser.parse("run loop 1")
+
+        expect(result[:intent]).to eq(:run_loop)
+        expect(result[:params][:number]).to eq(1)
+      end
+
+      it "matches case-insensitively" do
+        result = parser.parse("RUN LOOP 1")
+
+        expect(result[:intent]).to eq(:run_loop)
+      end
+    end
+
+    context "with 'run looping reminder 3'" do
+      it "returns :run_loop intent with number param" do
+        result = parser.parse("run looping reminder 3")
+
+        expect(result[:intent]).to eq(:run_loop)
+        expect(result[:params][:number]).to eq(3)
+      end
+    end
+
+    context "with \"alias 'run loop 1' as 'remember the dishes'\"" do
+      it "returns :alias_loop intent with source and target params" do
+        result = parser.parse("alias 'run loop 1' as 'remember the dishes'")
+
+        expect(result[:intent]).to eq(:alias_loop)
+        expect(result[:params][:source]).to eq("run loop 1")
+        expect(result[:params][:target]).to eq("remember the dishes")
+      end
+
+      it "strips whitespace from source and target" do
+        result = parser.parse("alias ' run loop 1 ' as ' remember the dishes '")
+
+        expect(result[:params][:source]).to eq("run loop 1")
+        expect(result[:params][:target]).to eq("remember the dishes")
+      end
+
+      it "matches case-insensitively" do
+        result = parser.parse("ALIAS 'run loop 1' AS 'remember the dishes'")
+
+        expect(result[:intent]).to eq(:alias_loop)
+      end
+    end
   end
 end

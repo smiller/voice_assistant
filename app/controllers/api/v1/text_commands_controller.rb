@@ -5,7 +5,7 @@ module Api
         transcript = params[:transcript]
         return head :bad_request if transcript.blank?
 
-        command = CommandParser.new.parse(transcript)
+        command = LoopingReminderDispatcher.new.dispatch(transcript: transcript, user: @current_user)
         record  = VoiceCommand.create!(
           user:       @current_user,
           transcript: transcript,
