@@ -6,7 +6,7 @@ module Api
       def create
         transcript = params[:transcript]
         return head :bad_request if transcript.blank?
-        return head :unprocessable_entity if transcript.length > MAX_TRANSCRIPT_LENGTH
+        return head :unprocessable_content if transcript.length > MAX_TRANSCRIPT_LENGTH
 
         Rails.logger.info("[TextCommand] transcript: #{transcript.inspect}")
         command = LoopingReminderDispatcher.new.dispatch(transcript: transcript, user: @current_user)

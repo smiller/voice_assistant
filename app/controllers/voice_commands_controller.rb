@@ -15,9 +15,9 @@ class VoiceCommandsController < AuthenticatedController
   def create
     audio = params[:audio]
     return head :bad_request unless audio
-    return head :unprocessable_entity if audio.size < 1.kilobyte
-    return head :unprocessable_entity if audio.size > 1.megabyte
-    return head :unprocessable_entity unless audio.content_type&.start_with?("audio/")
+    return head :unprocessable_content if audio.size < 1.kilobyte
+    return head :unprocessable_content if audio.size > 1.megabyte
+    return head :unprocessable_content unless audio.content_type&.start_with?("audio/")
 
     transcript = DeepgramClient.new.transcribe(audio: audio.read)
     if transcript.blank?
@@ -46,6 +46,6 @@ class VoiceCommandsController < AuthenticatedController
     end
     send_data audio_bytes, type: "audio/mpeg", disposition: "inline"
   rescue DeepgramClient::Error
-    head :unprocessable_entity
+    head :unprocessable_content
   end
 end

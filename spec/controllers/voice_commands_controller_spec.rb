@@ -212,7 +212,7 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         post "/voice_commands", params: { audio: tiny }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it "accepts audio that is exactly 1 KB" do
@@ -222,7 +222,7 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         post "/voice_commands", params: { audio: exactly_1kb }
 
-        expect(response).not_to have_http_status(:unprocessable_entity)
+        expect(response).not_to have_http_status(:unprocessable_content)
       end
 
       it "returns 422 when audio exceeds 1 MB" do
@@ -232,7 +232,7 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         post "/voice_commands", params: { audio: oversized }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it "returns 422 when audio has a non-audio MIME type" do
@@ -242,7 +242,7 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         post "/voice_commands", params: { audio: bad_type }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       context "when the command is not recognised" do
@@ -282,7 +282,7 @@ RSpec.describe VoiceCommandsController, type: :request do
             post "/voice_commands", params: { audio: audio_file }
           }.not_to change(VoiceCommand, :count)
 
-          expect(response).to have_http_status(:unprocessable_entity)
+          expect(response).to have_http_status(:unprocessable_content)
         end
       end
     end

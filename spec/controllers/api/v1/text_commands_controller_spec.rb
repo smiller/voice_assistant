@@ -66,7 +66,7 @@ RSpec.describe Api::V1::TextCommandsController, type: :request do
           params: { transcript: "a" * 1001 },
           headers: headers
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(responder).not_to have_received(:respond)
       end
 
