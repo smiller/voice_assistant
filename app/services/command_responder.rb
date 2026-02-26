@@ -1,7 +1,7 @@
 class CommandResponder
   include ActionView::RecordIdentifier
 
-  UNKNOWN_INTENT_MESSAGE = "Sorry, I didn't understand that. See the list of commands for options I'm more likely to recognize."
+  UNKNOWN_INTENT_MESSAGE = "Sorry, I didn't understand that.  Please see the list of commands for voice commands I will understand."
 
   def initialize(tts_client: ElevenLabsClient.new, geo_client: SunriseSunsetClient.new, broadcaster: LoopBroadcaster.new)
     @tts_client = tts_client

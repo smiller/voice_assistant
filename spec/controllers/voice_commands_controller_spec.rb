@@ -268,7 +268,7 @@ RSpec.describe VoiceCommandsController, type: :request do
 
           expect(response).to have_http_status(:ok)
           expect(response.content_type).to eq("audio/mpeg")
-          expect(response.headers["X-Status-Text"]).to eq("Sorry, I didn't catch that, please try again")
+          expect(response.headers["X-Status-Text"]).to eq("Sorry, I didn't catch that.  Please try again.")
         end
       end
 

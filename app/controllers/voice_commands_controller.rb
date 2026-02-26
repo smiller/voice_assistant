@@ -1,5 +1,5 @@
 class VoiceCommandsController < AuthenticatedController
-  BLANK_TRANSCRIPT_MESSAGE = "Sorry, I didn't catch that, please try again"
+  BLANK_TRANSCRIPT_MESSAGE = "Sorry, I didn't catch that.  Please try again."
 
   def index
     pending = current_user.reminders.pending.where("fire_at > ?", Time.current).includes(:user).order(:fire_at)
