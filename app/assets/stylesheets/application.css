@@ -452,3 +452,83 @@ body {
 .va-pending ul:has(li:not(.empty-state)) .empty-state {
   display: none;
 }
+
+/* ── Voice commands reference ── */
+
+.va-commands {
+  padding: 0 24px 40px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.va-commands details {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.va-commands summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.va-commands summary:hover {
+  color: var(--text);
+}
+
+.va-commands summary::-webkit-details-marker {
+  display: none;
+}
+
+.va-commands summary::before {
+  content: "›";
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+
+.va-commands details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.va-commands__body {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.va-commands__group h3 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.va-commands__group ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.va-commands__group li {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.va-commands__group q {
+  color: var(--text);
+  quotes: "\201C" "\201D";
+}
