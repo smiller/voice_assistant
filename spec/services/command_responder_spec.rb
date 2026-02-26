@@ -73,6 +73,13 @@ RSpec.describe CommandResponder do
         expect(tts_client).to have_received(:synthesize)
           .with(text: "Sorry, I didn't understand that", voice_id: "voice123")
       end
+
+      it "returns 'Sorry' when error is present but not :replacement_phrase_taken" do
+        responder.respond(command: { intent: :unknown, params: { error: :some_other_error } }, user: user)
+
+        expect(tts_client).to have_received(:synthesize)
+          .with(text: "Sorry, I didn't understand that", voice_id: user.elevenlabs_voice_id)
+      end
     end
 
     context "with a timer command" do
@@ -413,6 +420,490 @@ RSpec.describe CommandResponder do
         end
 
         it_behaves_like "broadcasts before later_sibling"
+      end
+    end
+  end
+
+  describe "#respond with loop commands" do
+    before do
+      allow(Turbo::StreamsChannel).to receive(:broadcast_append_to)
+      allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+      allow(LoopingReminderJob).to receive(:set).and_return(double(perform_later: nil))
+    end
+
+    context "with :create_loop intent" do
+      let(:create_cmd) do
+        { intent: :create_loop, params: { interval_minutes: 5, message: "have you done the dishes?", stop_phrase: "doing the dishes" } }
+      end
+
+      it "creates an active LoopingReminder" do
+        expect {
+          responder.respond(command: create_cmd, user: user)
+        }.to change(LoopingReminder, :count).by(1)
+      end
+
+      it "synthesizes the creation confirmation" do
+        responder.respond(command: create_cmd, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Created looping reminder 1, will ask 'have you done the dishes?' every 5 minutes until you reply 'doing the dishes'",
+          voice_id: user.elevenlabs_voice_id
+        )
+      end
+
+      it "creates the loop as active" do
+        responder.respond(command: create_cmd, user: user)
+
+        expect(LoopingReminder.last.active).to be(true)
+      end
+
+      it "schedules LoopingReminderJob with exact timing and loop arguments" do
+        freeze_time do
+          fire_at = 5.minutes.from_now
+          job_proxy = double("job_proxy", perform_later: nil)
+          allow(LoopingReminderJob).to receive(:set).and_return(job_proxy)
+
+          responder.respond(command: create_cmd, user: user)
+          loop = LoopingReminder.last
+
+          expect(LoopingReminderJob).to have_received(:set).with(wait_until: fire_at)
+          expect(job_proxy).to have_received(:perform_later).with(loop.id, fire_at)
+        end
+      end
+
+      it "broadcasts append to looping_reminders list with correct partial and locals" do
+        responder.respond(command: create_cmd, user: user)
+        loop = LoopingReminder.last
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to).with(
+          user,
+          target: "looping_reminders",
+          partial: "looping_reminders/looping_reminder",
+          locals: { looping_reminder: loop }
+        )
+      end
+
+      it "uses singular 'minute' when interval_minutes is 1" do
+        cmd = { intent: :create_loop, params: { interval_minutes: 1, message: "check in", stop_phrase: "done" } }
+
+        responder.respond(command: cmd, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Created looping reminder 1, will ask 'check in' every 1 minute until you reply 'done'",
+          voice_id: user.elevenlabs_voice_id
+        )
+      end
+
+      context "when stop phrase is already taken" do
+        before { create(:looping_reminder, user: user, stop_phrase: "doing the dishes") }
+
+        it "does not create a new LoopingReminder" do
+          expect {
+            responder.respond(command: create_cmd, user: user)
+          }.not_to change(LoopingReminder, :count)
+        end
+
+        it "creates a PendingInteraction" do
+          expect {
+            responder.respond(command: create_cmd, user: user)
+          }.to change(PendingInteraction, :count).by(1)
+        end
+
+        it "synthesizes the collision response" do
+          responder.respond(command: create_cmd, user: user)
+
+          expect(tts_client).to have_received(:synthesize).with(
+            text: "Stop phrase already in use. Enter a different stop phrase?",
+            voice_id: user.elevenlabs_voice_id
+          )
+        end
+
+        it "stores interval and message in PendingInteraction context" do
+          responder.respond(command: create_cmd, user: user)
+
+          pi = PendingInteraction.last
+          expect(pi.context["interval_minutes"]).to eq(5)
+          expect(pi.context["message"]).to eq("have you done the dishes?")
+        end
+
+        it "sets PendingInteraction to expire in 5 minutes" do
+          freeze_time do
+            responder.respond(command: create_cmd, user: user)
+
+            expect(PendingInteraction.last.expires_at).to be_within(1.second).of(5.minutes.from_now)
+          end
+        end
+      end
+
+      context "when stop phrase is taken via alias (not stop phrase)" do
+        before do
+          other_loop = create(:looping_reminder, user: user)
+          create(:command_alias, user: user, looping_reminder: other_loop, phrase: "doing the dishes")
+        end
+
+        it "creates a PendingInteraction" do
+          expect {
+            responder.respond(command: create_cmd, user: user)
+          }.to change(PendingInteraction, :count).by(1)
+        end
+
+        it "synthesizes the collision response" do
+          responder.respond(command: create_cmd, user: user)
+
+          expect(tts_client).to have_received(:synthesize).with(
+            text: "Stop phrase already in use. Enter a different stop phrase?",
+            voice_id: user.elevenlabs_voice_id
+          )
+        end
+      end
+
+      context "when stop phrase matches a stop_phrase case-insensitively" do
+        before { create(:looping_reminder, user: user, stop_phrase: "doing the dishes") }
+
+        it "detects collision when stop phrase is uppercase" do
+          cmd = { intent: :create_loop, params: { interval_minutes: 5, message: "check", stop_phrase: "DOING THE DISHES" } }
+
+          expect {
+            responder.respond(command: cmd, user: user)
+          }.to change(PendingInteraction, :count).by(1)
+        end
+      end
+
+      context "when stop phrase matches an alias case-insensitively" do
+        before do
+          other_loop = create(:looping_reminder, user: user)
+          create(:command_alias, user: user, looping_reminder: other_loop, phrase: "doing the dishes")
+        end
+
+        it "detects collision when stop phrase is uppercase" do
+          cmd = { intent: :create_loop, params: { interval_minutes: 5, message: "check", stop_phrase: "DOING THE DISHES" } }
+
+          expect {
+            responder.respond(command: cmd, user: user)
+          }.to change(PendingInteraction, :count).by(1)
+        end
+      end
+
+      context "when user has an alias with a different phrase" do
+        before do
+          other_loop = create(:looping_reminder, user: user)
+          create(:command_alias, user: user, looping_reminder: other_loop, phrase: "some other phrase")
+        end
+
+        it "creates the LoopingReminder without collision" do
+          expect {
+            responder.respond(command: create_cmd, user: user)
+          }.to change(LoopingReminder, :count).by(1)
+        end
+      end
+    end
+
+    context "with :run_loop intent" do
+      let!(:loop) { create(:looping_reminder, user: user, number: 1, active: false) }
+
+      it "activates the loop and synthesizes confirmation" do
+        responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Running looping reminder 1",
+          voice_id: user.elevenlabs_voice_id
+        )
+        expect(loop.reload.active).to be(true)
+      end
+
+      it "schedules LoopingReminderJob when activating" do
+        responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
+
+        expect(LoopingReminderJob).to have_received(:set)
+      end
+
+      it "broadcasts replace to update the loop row with correct partial and locals" do
+        responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
+          user,
+          target: "looping_reminder_#{loop.id}",
+          partial: "looping_reminders/looping_reminder",
+          locals: { looping_reminder: loop }
+        )
+      end
+
+      context "when loop is already active" do
+        before { loop.activate! }
+
+        it "synthesizes the already-active response" do
+          responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
+
+          expect(tts_client).to have_received(:synthesize).with(
+            text: "Loop 1 already active",
+            voice_id: user.elevenlabs_voice_id
+          )
+        end
+
+        it "does not schedule another job" do
+          responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
+
+          expect(LoopingReminderJob).not_to have_received(:set)
+        end
+      end
+
+      context "when loop is not found" do
+        it "synthesizes the not-found response" do
+          responder.respond(command: { intent: :run_loop, params: { number: 99 } }, user: user)
+
+          expect(tts_client).to have_received(:synthesize).with(
+            text: "Loop 99 not found",
+            voice_id: user.elevenlabs_voice_id
+          )
+        end
+      end
+    end
+
+    context "with :stop_loop intent" do
+      let!(:loop) { create(:looping_reminder, user: user, active: true) }
+
+      it "stops the loop and synthesizes confirmation" do
+        responder.respond(command: { intent: :stop_loop, params: { looping_reminder_id: loop.id } }, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Excellent. Stopping looping reminder #{loop.number}",
+          voice_id: user.elevenlabs_voice_id
+        )
+        expect(loop.reload.active).to be(false)
+      end
+
+      it "broadcasts replace to update the loop row with correct partial and locals" do
+        responder.respond(command: { intent: :stop_loop, params: { looping_reminder_id: loop.id } }, user: user)
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
+          user,
+          target: "looping_reminder_#{loop.id}",
+          partial: "looping_reminders/looping_reminder",
+          locals: { looping_reminder: loop }
+        )
+      end
+    end
+
+    context "with :alias_loop intent" do
+      let!(:loop) { create(:looping_reminder, user: user, number: 1) }
+      let(:alias_cmd) { { intent: :alias_loop, params: { source: "run loop 1", target: "remember the dishes" } } }
+
+      it "creates a CommandAlias and synthesizes confirmation" do
+        expect {
+          responder.respond(command: alias_cmd, user: user)
+        }.to change(CommandAlias, :count).by(1)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Alias 'remember the dishes' created for looping reminder 1",
+          voice_id: user.elevenlabs_voice_id
+        )
+      end
+
+      it "stores the target phrase on the created CommandAlias" do
+        responder.respond(command: alias_cmd, user: user)
+
+        expect(CommandAlias.last.phrase).to eq("remember the dishes")
+      end
+
+      it "broadcasts replace to update the loop row with correct partial and locals" do
+        responder.respond(command: alias_cmd, user: user)
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
+          user,
+          target: "looping_reminder_#{loop.id}",
+          partial: "looping_reminders/looping_reminder",
+          locals: { looping_reminder: loop }
+        )
+      end
+
+      context "when loop number is not found in source" do
+        let(:bad_cmd) { { intent: :alias_loop, params: { source: "something without a number", target: "do the thing" } } }
+
+        it "synthesizes the not-found response" do
+          responder.respond(command: bad_cmd, user: user)
+
+          expect(tts_client).to have_received(:synthesize).with(
+            text: "Loop ? not found",
+            voice_id: user.elevenlabs_voice_id
+          )
+        end
+
+        it "does not create a CommandAlias" do
+          expect {
+            responder.respond(command: bad_cmd, user: user)
+          }.not_to change(CommandAlias, :count)
+        end
+      end
+
+      context "when target phrase is already taken" do
+        before { create(:looping_reminder, user: user, stop_phrase: "remember the dishes") }
+
+        it "creates a PendingInteraction" do
+          expect {
+            responder.respond(command: alias_cmd, user: user)
+          }.to change(PendingInteraction, :count).by(1)
+        end
+
+        it "synthesizes the alias collision response" do
+          responder.respond(command: alias_cmd, user: user)
+
+          expect(tts_client).to have_received(:synthesize).with(
+            text: "Alias phrase already in use. Enter a different phrase?",
+            voice_id: user.elevenlabs_voice_id
+          )
+        end
+
+        it "stores looping_reminder_id in PendingInteraction context" do
+          responder.respond(command: alias_cmd, user: user)
+
+          pi = PendingInteraction.last
+          expect(pi.context["looping_reminder_id"]).to eq(loop.id)
+        end
+
+        it "sets PendingInteraction to expire in 5 minutes" do
+          freeze_time do
+            responder.respond(command: alias_cmd, user: user)
+
+            expect(PendingInteraction.last.expires_at).to be_within(1.second).of(5.minutes.from_now)
+          end
+        end
+      end
+    end
+
+    context "with :give_up intent" do
+      it "synthesizes the give-up response" do
+        responder.respond(command: { intent: :give_up, params: {} }, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "OK, giving up.",
+          voice_id: user.elevenlabs_voice_id
+        )
+      end
+    end
+
+    context "with :unknown intent and replacement_phrase_taken error" do
+      it "synthesizes stop phrase collision retry text" do
+        cmd = { intent: :unknown, params: { error: :replacement_phrase_taken, kind: "stop_phrase_replacement" } }
+
+        responder.respond(command: cmd, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Stop phrase also already in use. Try another, or say 'give up' to cancel.",
+          voice_id: user.elevenlabs_voice_id
+        )
+      end
+
+      it "synthesizes alias collision retry text" do
+        cmd = { intent: :unknown, params: { error: :replacement_phrase_taken, kind: "alias_phrase_replacement" } }
+
+        responder.respond(command: cmd, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Alias phrase also already in use. Try another, or say 'give up' to cancel.",
+          voice_id: user.elevenlabs_voice_id
+        )
+      end
+    end
+
+    context "with :complete_pending intent (stop_phrase_replacement)" do
+      let(:complete_stop_cmd) do
+        {
+          intent: :complete_pending,
+          params: {
+            interval_minutes: 5, message: "have you done the dishes?",
+            replacement_phrase: "a new stop phrase", kind: "stop_phrase_replacement"
+          }
+        }
+      end
+
+      it "creates a LoopingReminder with the replacement phrase as stop_phrase" do
+        expect {
+          responder.respond(command: complete_stop_cmd, user: user)
+        }.to change(LoopingReminder, :count).by(1)
+
+        expect(LoopingReminder.last.stop_phrase).to eq("a new stop phrase")
+      end
+
+      it "creates the LoopingReminder as active" do
+        responder.respond(command: complete_stop_cmd, user: user)
+
+        expect(LoopingReminder.last.active).to be(true)
+      end
+
+      it "synthesizes the creation confirmation with the replacement phrase" do
+        responder.respond(command: complete_stop_cmd, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Created looping reminder 1, will ask 'have you done the dishes?' every 5 minutes until you reply 'a new stop phrase'",
+          voice_id: user.elevenlabs_voice_id
+        )
+      end
+
+      it "schedules LoopingReminderJob with exact timing and loop arguments" do
+        freeze_time do
+          fire_at = 5.minutes.from_now
+          job_proxy = double("job_proxy", perform_later: nil)
+          allow(LoopingReminderJob).to receive(:set).and_return(job_proxy)
+
+          responder.respond(command: complete_stop_cmd, user: user)
+          loop = LoopingReminder.last
+
+          expect(LoopingReminderJob).to have_received(:set).with(wait_until: fire_at)
+          expect(job_proxy).to have_received(:perform_later).with(loop.id, fire_at)
+        end
+      end
+
+      it "broadcasts append to looping_reminders list with correct partial and locals" do
+        responder.respond(command: complete_stop_cmd, user: user)
+        loop = LoopingReminder.last
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to).with(
+          user,
+          target: "looping_reminders",
+          partial: "looping_reminders/looping_reminder",
+          locals: { looping_reminder: loop }
+        )
+      end
+    end
+
+    context "with :complete_pending intent (alias_phrase_replacement)" do
+      let!(:loop) { create(:looping_reminder, user: user, number: 2) }
+      let(:complete_alias_cmd) do
+        {
+          intent: :complete_pending,
+          params: {
+            looping_reminder_id: loop.id,
+            replacement_phrase: "new alias phrase", kind: "alias_phrase_replacement"
+          }
+        }
+      end
+
+      it "creates a CommandAlias with the replacement phrase" do
+        expect {
+          responder.respond(command: complete_alias_cmd, user: user)
+        }.to change(CommandAlias, :count).by(1)
+
+        expect(CommandAlias.last.phrase).to eq("new alias phrase")
+      end
+
+      it "synthesizes the alias confirmation" do
+        responder.respond(command: complete_alias_cmd, user: user)
+
+        expect(tts_client).to have_received(:synthesize).with(
+          text: "Alias 'new alias phrase' created for looping reminder 2",
+          voice_id: user.elevenlabs_voice_id
+        )
+      end
+
+      it "broadcasts replace to update the loop row with correct partial and locals" do
+        responder.respond(command: complete_alias_cmd, user: user)
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
+          user,
+          target: "looping_reminder_#{loop.id}",
+          partial: "looping_reminders/looping_reminder",
+          locals: { looping_reminder: loop }
+        )
       end
     end
   end
