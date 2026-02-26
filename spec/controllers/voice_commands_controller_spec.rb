@@ -110,6 +110,26 @@ RSpec.describe VoiceCommandsController, type: :request do
 
         expect(response.body).not_to include("reminder_#{past.id}")
       end
+
+      it "renders looping reminders ordered by number" do
+        high = create(:looping_reminder, user: user, number: 5)
+        low  = create(:looping_reminder, user: user, number: 2)
+
+        get "/voice_commands"
+
+        expect(response.body.index("looping_reminder_#{low.id}"))
+          .to be < response.body.index("looping_reminder_#{high.id}")
+      end
+
+      it "renders all looping reminders regardless of active state" do
+        active = create(:looping_reminder, user: user, active: true)
+        idle   = create(:looping_reminder, user: user, active: false)
+
+        get "/voice_commands"
+
+        expect(response.body).to include("looping_reminder_#{active.id}")
+        expect(response.body).to include("looping_reminder_#{idle.id}")
+      end
     end
   end
 
