@@ -19,7 +19,7 @@ class LoopingReminderDispatcher
   private
 
   def clean_expired_interactions(user)
-    user.pending_interactions.where("expires_at <= ?", Time.current).destroy_all
+    user.pending_interactions.where("expires_at <= ?", Time.current).delete_all
   end
 
   def match_stop_phrase(transcript, user)

@@ -7,7 +7,7 @@
       · active
     <% end %>
     · remind every <%= looping_reminder.interval_minutes %>
-      <%= looping_reminder.interval_minutes == 1 ? "min" : "mins" %>
+      <%= "min".pluralize(looping_reminder.interval_minutes) %>
       '<%= looping_reminder.message %>'
       until '<%= looping_reminder.stop_phrase %>'
   </span>

@@ -130,7 +130,7 @@ RSpec.describe LoopingReminderDispatcher do
     end
 
     context "expired PendingInteraction cleanup" do
-      it "destroys expired interactions before dispatching" do
+      it "deletes expired interactions before dispatching" do
         create(:pending_interaction, user: user, expires_at: 1.minute.ago)
 
         expect { dispatcher.dispatch(transcript: "what time is it", user: user) }

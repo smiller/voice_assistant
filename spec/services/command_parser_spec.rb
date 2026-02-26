@@ -466,19 +466,24 @@ RSpec.describe CommandParser do
     end
 
     context "with \"alias 'run loop 1' as 'remember the dishes'\"" do
-      it "returns :alias_loop intent with source and target params" do
+      it "returns :alias_loop intent with number and target params" do
         result = parser.parse("alias 'run loop 1' as 'remember the dishes'")
 
         expect(result[:intent]).to eq(:alias_loop)
-        expect(result[:params][:source]).to eq("run loop 1")
+        expect(result[:params][:number]).to eq(1)
         expect(result[:params][:target]).to eq("remember the dishes")
       end
 
-      it "strips whitespace from source and target" do
-        result = parser.parse("alias ' run loop 1 ' as ' remember the dishes '")
+      it "strips whitespace from target" do
+        result = parser.parse("alias 'run loop 1' as ' remember the dishes '")
 
-        expect(result[:params][:source]).to eq("run loop 1")
         expect(result[:params][:target]).to eq("remember the dishes")
+      end
+
+      it "extracts number from 'run looping reminder N' form" do
+        result = parser.parse("alias 'run looping reminder 3' as 'wash up'")
+
+        expect(result[:params][:number]).to eq(3)
       end
 
       it "matches case-insensitively" do

@@ -74,6 +74,42 @@ RSpec.describe LoopingReminder do
 
       expect(other).to be_valid
     end
+
+    it "is invalid with a message longer than 500 characters" do
+      loop = build(:looping_reminder, message: "a" * 501)
+
+      expect(loop).not_to be_valid
+    end
+
+    it "is valid with a message of exactly 500 characters" do
+      loop = build(:looping_reminder, message: "a" * 500)
+
+      expect(loop).to be_valid
+    end
+
+    it "is invalid with a stop_phrase longer than 100 characters" do
+      loop = build(:looping_reminder, stop_phrase: "a" * 101)
+
+      expect(loop).not_to be_valid
+    end
+
+    it "is valid with a stop_phrase of exactly 100 characters" do
+      loop = build(:looping_reminder, stop_phrase: "a" * 100)
+
+      expect(loop).to be_valid
+    end
+
+    it "is invalid with interval_minutes greater than 1440" do
+      loop = build(:looping_reminder, interval_minutes: 1441)
+
+      expect(loop).not_to be_valid
+    end
+
+    it "is valid with interval_minutes of 1440" do
+      loop = build(:looping_reminder, interval_minutes: 1440)
+
+      expect(loop).to be_valid
+    end
   end
 
   describe "#activate!" do

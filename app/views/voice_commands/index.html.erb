@@ -36,11 +36,8 @@
 
   <h2>Looping Reminders</h2>
   <ul id="looping_reminders">
-    <% if @looping_reminders.empty? %>
-      <li>No looping reminders</li>
-    <% else %>
-      <%= render @looping_reminders %>
-    <% end %>
+    <%= render @looping_reminders %>
+    <li class="empty-state">No looping reminders</li>
   </ul>
 
   <h2>Reminders</h2>

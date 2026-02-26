@@ -745,7 +745,7 @@ RSpec.describe CommandResponder do
 
     context "with :alias_loop intent" do
       let!(:reminder) { create(:looping_reminder, user: user, number: 1) }
-      let(:alias_cmd) { { intent: :alias_loop, params: { source: "run loop 1", target: "remember the dishes" } } }
+      let(:alias_cmd) { { intent: :alias_loop, params: { number: 1, target: "remember the dishes" } } }
 
       it "creates a CommandAlias and synthesizes confirmation" do
         expect {
@@ -783,8 +783,8 @@ RSpec.describe CommandResponder do
         end
       end
 
-      context "when loop number is not found in source" do
-        let(:bad_cmd) { { intent: :alias_loop, params: { source: "something without a number", target: "do the thing" } } }
+      context "when number is nil" do
+        let(:bad_cmd) { { intent: :alias_loop, params: { number: nil, target: "do the thing" } } }
 
         it "synthesizes the not-found response" do
           responder.respond(command: bad_cmd, user: user)

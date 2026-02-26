@@ -146,9 +146,8 @@ class CommandResponder
   end
 
   def handle_alias_loop(params, user)
-    number = params[:source].match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i)&.then { |m| m[1].to_i }
-    reminder = number && user.looping_reminders.find_by(number: number)
-    return "Loop #{number || '?'} not found" unless reminder
+    reminder = params[:number] && user.looping_reminders.find_by(number: params[:number])
+    return "Loop #{params[:number] || '?'} not found" unless reminder
 
     if user.phrase_taken?(params[:target])
       PendingInteraction.create!(
