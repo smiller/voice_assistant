@@ -40,7 +40,7 @@ class CommandParser
   end
 
   def loop_command(normalized)
-    if (m = normalized.match(/\blooping\s+reminder\s+for\s+(\d+)\s+minutes?\s+saying\s+'([^']+)'\s+until\s+I\s+say\s+'([^']+)'/i))
+    if (m = normalized.match(/\blooping\s+reminder\s+(?:for|every)\s+(\d+)\s+minutes?\s+saying\s+'([^']+)'\s+until\s+I\s+say\s+'([^']+)'/i))
       { intent: :create_loop,
         params: { interval_minutes: m[1].to_i, message: m[2].strip, stop_phrase: m[3].strip } }
     elsif (m = normalized.match(/\balias\s+'([^']+)'\s+as\s+'([^']+)'/i))
