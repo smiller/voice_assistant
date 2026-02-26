@@ -524,5 +524,23 @@ RSpec.describe CommandParser do
         expect(result[:params][:target]).to eq("remember the dishes")
       end
     end
+
+    context "with 'to' instead of 'as' as the separator" do
+      it "parses the alias command with 'to'" do
+        result = parser.parse("alias 'run loop 1' to 'meds'")
+
+        expect(result[:intent]).to eq(:alias_loop)
+        expect(result[:params][:number]).to eq(1)
+        expect(result[:params][:target]).to eq("meds")
+      end
+
+      it "parses the alias command with 'to' and no quotes" do
+        result = parser.parse("alias run loop 1 to meds")
+
+        expect(result[:intent]).to eq(:alias_loop)
+        expect(result[:params][:number]).to eq(1)
+        expect(result[:params][:target]).to eq("meds")
+      end
+    end
   end
 end

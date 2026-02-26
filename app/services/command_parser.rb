@@ -43,7 +43,7 @@ class CommandParser
     if (m = normalized.match(/\blooping\s+reminder\s+(?:for|every)\s+(\d+)\s+minutes?\s+saying\s+'?(.+?)'?\s+until\s+I\s+say\s+'?(.+?)'?\s*\z/i))
       { intent: :create_loop,
         params: { interval_minutes: m[1].to_i, message: m[2].strip, stop_phrase: m[3].strip } }
-    elsif (m = normalized.match(/\balias\s+'?(.+?)'?\s+as\s+'?(.+?)'?\s*\z/i))
+    elsif (m = normalized.match(/\balias\s+'?(.+?)'?\s+(?:as|to)\s+'?(.+?)'?\s*\z/i))
       { intent: :alias_loop, params: { number: alias_loop_number(m[1]), target: m[2].strip } }
     elsif (m = normalized.match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i))
       { intent: :run_loop, params: { number: m[1].to_i } }

@@ -50,6 +50,7 @@ A looping reminder fires on an interval and repeats until you say its stop phras
 | _(your stop phrase, e.g. "yes I did")_ | Stops the loop; stop phrases match anywhere in your utterance |
 | "run loop 1" | Restarts a stopped loop |
 | "alias 'run loop 1' as 'meds'" | Creates the alias "meds"; saying "meds" now starts loop 1 |
+| "alias 'run loop 1' to 'meds'" | Same — "to" and "as" are both accepted |
 
 **Collision handling:** If the stop phrase or alias is already in use, the assistant asks for a different one. Say any new phrase to proceed, or "give up" to cancel.
 
