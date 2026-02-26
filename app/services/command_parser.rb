@@ -16,39 +16,50 @@ class CommandParser
   def parse(transcript)
     normalized = normalize_numbers(transcript)
 
-    return { intent: :time_check, params: {} } if normalized.match?(/\btime\b/i)
-    return { intent: :sunset, params: {} }     if normalized.match?(/\bsunset\b/i)
-
-    if (m = normalized.match(/\btimer\s+(?:for\s+)?(\d+)\s+minute/i))
-      return { intent: :timer, params: { minutes: m[1].to_i } }
-    end
-
-    if (m = normalized.match(/\blooping\s+reminder\s+for\s+(\d+)\s+minutes?\s+saying\s+'([^']+)'\s+until\s+I\s+say\s+'([^']+)'/i))
-      return { intent: :create_loop,
-               params: { interval_minutes: m[1].to_i, message: m[2].strip, stop_phrase: m[3].strip } }
-    end
-
-    if (m = normalized.match(/\balias\s+'([^']+)'\s+as\s+'([^']+)'/i))
-      return { intent: :alias_loop, params: { number: alias_loop_number(m[1]), target: m[2].strip } }
-    end
-
-    if (m = normalized.match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i))
-      return { intent: :run_loop, params: { number: m[1].to_i } }
-    end
-
-    scheduled_reminder_command(normalized)
+    simple_command(normalized)               ||
+      timer_command(normalized)              ||
+      loop_command(normalized)               ||
+      scheduled_reminder_command(normalized) ||
+      unrecognized_command
   end
 
   private
+
+  def simple_command(normalized)
+    if normalized.match?(/\btime\b/i)
+      { intent: :time_check, params: {} }
+    elsif normalized.match?(/\bsunset\b/i)
+      { intent: :sunset, params: {} }
+    end
+  end
+
+  def timer_command(normalized)
+    return unless (m = normalized.match(/\btimer\s+(?:for\s+)?(\d+)\s+minute/i))
+
+    { intent: :timer, params: { minutes: m[1].to_i } }
+  end
+
+  def loop_command(normalized)
+    if (m = normalized.match(/\blooping\s+reminder\s+for\s+(\d+)\s+minutes?\s+saying\s+'([^']+)'\s+until\s+I\s+say\s+'([^']+)'/i))
+      { intent: :create_loop,
+        params: { interval_minutes: m[1].to_i, message: m[2].strip, stop_phrase: m[3].strip } }
+    elsif (m = normalized.match(/\balias\s+'([^']+)'\s+as\s+'([^']+)'/i))
+      { intent: :alias_loop, params: { number: alias_loop_number(m[1]), target: m[2].strip } }
+    elsif (m = normalized.match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i))
+      { intent: :run_loop, params: { number: m[1].to_i } }
+    end
+  end
 
   def scheduled_reminder_command(normalized)
     if (m = daily_reminder_match(normalized))
       { intent: :daily_reminder, params: reminder_params(m) }
     elsif (m = reminder_match(normalized))
       { intent: :reminder, params: reminder_params(m) }
-    else
-      { intent: :unknown, params: {} }
     end
+  end
+
+  def unrecognized_command
+    { intent: :unknown, params: {} }
   end
 
   def alias_loop_number(source)
