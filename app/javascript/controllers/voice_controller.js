@@ -94,6 +94,7 @@ export default class extends Controller {
         headers: { "X-CSRF-Token": token },
         body: form
       })
+      if (resp.status === 204) { this.updateStatus("Didn't catch that — try again"); return }
       if (!resp.ok) throw new Error(`Server error: ${resp.status}`)
       const buffer = await resp.arrayBuffer()
       this.playAudio(buffer)

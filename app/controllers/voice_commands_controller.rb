@@ -18,7 +18,7 @@ class VoiceCommandsController < AuthenticatedController
     return head :unprocessable_entity unless audio.content_type&.start_with?("audio/")
 
     transcript = DeepgramClient.new.transcribe(audio: audio.read)
-    return head :bad_request if transcript.blank?
+    return head :no_content if transcript.blank?
 
     Rails.logger.info("[VoiceCommand] transcript: #{transcript.inspect}")
     parsed = LoopingReminderDispatcher.new.dispatch(transcript: transcript, user: current_user)
