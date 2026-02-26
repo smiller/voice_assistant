@@ -39,6 +39,24 @@ Built with Claude Code and
 - If a reminder time has already passed today it is automatically scheduled for tomorrow, e.g. "Reminder set for 7:00 AM tomorrow to take medication".
 - Alerts are silently dropped if the browser tab is closed when the job fires.
 
+### Looping reminders
+
+A looping reminder fires on an interval and repeats until you say its stop phrase.
+
+| Say | Effect |
+|-----|--------|
+| "looping reminder for 5 minutes saying 'did you take your meds' until I say 'yes I did'" | Creates loop 1; confirms interval and stop phrase |
+| _(your stop phrase, e.g. "yes I did")_ | Stops the loop; stop phrases match anywhere in your utterance |
+| "run loop 1" | Restarts a stopped loop |
+| "alias 'run loop 1' as 'meds'" | Creates the alias "meds"; saying "meds" now starts loop 1 |
+
+**Collision handling:** If the stop phrase or alias is already in use, the assistant asks for a different one. Say any new phrase to proceed, or "give up" to cancel.
+
+**Notes:**
+- Multiple loops can run simultaneously; each is assigned a number in order.
+- A stopped loop can be restarted with "run loop N"; an active loop cannot be started again.
+- Alias phrases are matched exactly (case-insensitive); stop phrases match if contained anywhere in your utterance.
+
 ## Setup
 
 ### Prerequisites
