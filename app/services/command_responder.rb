@@ -16,13 +16,8 @@ class CommandResponder
 
   def response_text(command, user)
     case command[:intent]
-    when :time_check
-      time = Time.current.in_time_zone(user.timezone)
-      "The time is #{time.strftime("%-I:%M %p")}"
-    when :sunset
-      sunset = @geo_client.sunset_time(lat: user.lat, lng: user.lng)
-      local = sunset.in_time_zone(user.timezone)
-      "Sunset today is at #{local.strftime("%-I:%M %p")}"
+    when :time_check, :sunset
+      time_or_sunset_text(command[:intent], user)
     when :timer
       minutes = command[:params][:minutes]
       "Timer set for #{minutes} #{"minute".pluralize(minutes)}"
@@ -63,6 +58,17 @@ class CommandResponder
       "Alias phrase also already in use. Try another, or say 'give up' to cancel."
     else
       "Stop phrase also already in use. Try another, or say 'give up' to cancel."
+    end
+  end
+
+  def time_or_sunset_text(intent, user)
+    if intent == :time_check
+      time = Time.current.in_time_zone(user.timezone)
+      "The time is #{time.strftime("%-I:%M %p")}"
+    else
+      sunset = @geo_client.sunset_time(lat: user.lat, lng: user.lng)
+      local = sunset.in_time_zone(user.timezone)
+      "Sunset today is at #{local.strftime("%-I:%M %p")}"
     end
   end
 

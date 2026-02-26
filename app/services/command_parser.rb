@@ -36,18 +36,20 @@ class CommandParser
       return { intent: :run_loop, params: { number: m[1].to_i } }
     end
 
-    if (m = daily_reminder_match(normalized))
-      return { intent: :daily_reminder, params: reminder_params(m) }
-    end
-
-    if (m = reminder_match(normalized))
-      return { intent: :reminder, params: reminder_params(m) }
-    end
-
-    { intent: :unknown, params: {} }
+    scheduled_reminder_command(normalized)
   end
 
   private
+
+  def scheduled_reminder_command(normalized)
+    if (m = daily_reminder_match(normalized))
+      { intent: :daily_reminder, params: reminder_params(m) }
+    elsif (m = reminder_match(normalized))
+      { intent: :reminder, params: reminder_params(m) }
+    else
+      { intent: :unknown, params: {} }
+    end
+  end
 
   def alias_loop_number(source)
     source.match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i)&.then { |m| m[1].to_i }
