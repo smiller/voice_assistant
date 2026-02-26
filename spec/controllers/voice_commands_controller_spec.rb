@@ -245,6 +245,16 @@ RSpec.describe VoiceCommandsController, type: :request do
         expect(response).to have_http_status(:unprocessable_entity)
       end
 
+      context "when the command is not recognised" do
+        let(:deepgram) { instance_double(DeepgramClient, transcribe: "blah blah blah") }
+
+        it "sets the X-Status-Text header to the unknown intent message" do
+          post "/voice_commands", params: { audio: audio_file }
+
+          expect(response.headers["X-Status-Text"]).to eq(CommandResponder::UNKNOWN_INTENT_MESSAGE)
+        end
+      end
+
       context "when Deepgram returns a blank transcript" do
         let(:deepgram)     { instance_double(DeepgramClient, transcribe: "") }
         let(:eleven_labs)  { instance_double(ElevenLabsClient, synthesize: "blank audio") }

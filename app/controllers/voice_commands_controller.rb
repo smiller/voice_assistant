@@ -41,6 +41,9 @@ class VoiceCommandsController < AuthenticatedController
     audio_bytes = CommandResponder.new.respond(command: parsed, user: current_user)
     command.update!(status: "processed")
 
+    if parsed[:intent] == :unknown
+      response.set_header("X-Status-Text", CommandResponder::UNKNOWN_INTENT_MESSAGE)
+    end
     send_data audio_bytes, type: "audio/mpeg", disposition: "inline"
   rescue DeepgramClient::Error
     head :unprocessable_entity

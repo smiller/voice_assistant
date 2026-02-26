@@ -1,6 +1,8 @@
 class CommandResponder
   include ActionView::RecordIdentifier
 
+  UNKNOWN_INTENT_MESSAGE = "Sorry, I didn't understand that. See the list of commands for options I'm more likely to recognize."
+
   def initialize(tts_client: ElevenLabsClient.new, geo_client: SunriseSunsetClient.new, broadcaster: LoopBroadcaster.new)
     @tts_client = tts_client
     @geo_client = geo_client
@@ -50,7 +52,7 @@ class CommandResponder
   end
 
   def unknown_response_text(command)
-    return "Sorry, I didn't understand that" unless command[:params][:error] == :replacement_phrase_taken
+    return UNKNOWN_INTENT_MESSAGE unless command[:params][:error] == :replacement_phrase_taken
 
     kind = command[:params][:kind]
     if kind == "alias_phrase_replacement"

@@ -71,14 +71,14 @@ RSpec.describe CommandResponder do
 
         expect(result).to eq(audio_bytes)
         expect(tts_client).to have_received(:synthesize)
-          .with(text: "Sorry, I didn't understand that", voice_id: "voice123")
+          .with(text: "Sorry, I didn't understand that. See the list of commands for options I'm more likely to recognize.", voice_id: "voice123")
       end
 
       it "returns 'Sorry' when error is present but not :replacement_phrase_taken" do
         responder.respond(command: { intent: :unknown, params: { error: :some_other_error } }, user: user)
 
         expect(tts_client).to have_received(:synthesize)
-          .with(text: "Sorry, I didn't understand that", voice_id: user.elevenlabs_voice_id)
+          .with(text: "Sorry, I didn't understand that. See the list of commands for options I'm more likely to recognize.", voice_id: user.elevenlabs_voice_id)
       end
     end
 
