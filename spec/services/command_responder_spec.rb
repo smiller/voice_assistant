@@ -432,10 +432,55 @@ RSpec.describe CommandResponder do
       allow(LoopingReminderJob).to receive(:set).and_return(double(perform_later: nil))
     end
 
+    shared_examples "broadcasts loop replace" do
+      it "broadcasts replace to update the loop row with correct partial and locals" do
+        responder.respond(command: loop_command, user: user)
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
+          user,
+          target: "looping_reminder_#{reminder.id}",
+          partial: "looping_reminders/looping_reminder",
+          locals: { looping_reminder: reminder }
+        )
+      end
+    end
+
+    shared_examples "schedules LoopingReminderJob" do
+      it "schedules LoopingReminderJob with exact timing and loop arguments" do
+        freeze_time do
+          job_proxy = double("job_proxy", perform_later: nil)
+          allow(LoopingReminderJob).to receive(:set).and_return(job_proxy)
+
+          responder.respond(command: loop_command, user: user)
+          created_reminder = LoopingReminder.last
+
+          expect(LoopingReminderJob).to have_received(:set)
+            .with(wait_until: created_reminder.interval_minutes.minutes.from_now)
+          expect(job_proxy).to have_received(:perform_later)
+            .with(created_reminder.id, created_reminder.interval_minutes.minutes.from_now)
+        end
+      end
+    end
+
+    shared_examples "broadcasts loop append" do
+      it "broadcasts append to looping_reminders list with correct partial and locals" do
+        responder.respond(command: loop_command, user: user)
+        created_reminder = LoopingReminder.last
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to).with(
+          user,
+          target: "looping_reminders",
+          partial: "looping_reminders/looping_reminder",
+          locals: { looping_reminder: created_reminder }
+        )
+      end
+    end
+
     context "with :create_loop intent" do
       let(:create_cmd) do
         { intent: :create_loop, params: { interval_minutes: 5, message: "have you done the dishes?", stop_phrase: "doing the dishes" } }
       end
+      let(:loop_command) { create_cmd }
 
       it "creates an active LoopingReminder" do
         expect {
@@ -464,31 +509,8 @@ RSpec.describe CommandResponder do
         expect(LoopingReminder.last.active).to be(true)
       end
 
-      it "schedules LoopingReminderJob with exact timing and loop arguments" do
-        freeze_time do
-          fire_at = 5.minutes.from_now
-          job_proxy = double("job_proxy", perform_later: nil)
-          allow(LoopingReminderJob).to receive(:set).and_return(job_proxy)
-
-          responder.respond(command: create_cmd, user: user)
-          reminder = LoopingReminder.last
-
-          expect(LoopingReminderJob).to have_received(:set).with(wait_until: fire_at)
-          expect(job_proxy).to have_received(:perform_later).with(reminder.id, fire_at)
-        end
-      end
-
-      it "broadcasts append to looping_reminders list when there is no higher-numbered sibling" do
-        responder.respond(command: create_cmd, user: user)
-        reminder = LoopingReminder.last
-
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to).with(
-          user,
-          target: "looping_reminders",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
+      it_behaves_like "schedules LoopingReminderJob"
+      it_behaves_like "broadcasts loop append"
 
       context "when a higher-numbered looping reminder already exists" do
         # Simulate a lower number being assigned (e.g. after a gap) by stubbing next_number_for
@@ -633,6 +655,7 @@ RSpec.describe CommandResponder do
 
     context "with :run_loop intent" do
       let!(:reminder) { create(:looping_reminder, user: user, number: 1, active: false) }
+      let(:loop_command) { { intent: :run_loop, params: { number: 1 } } }
 
       it "activates the loop and synthesizes confirmation" do
         responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
@@ -650,16 +673,7 @@ RSpec.describe CommandResponder do
         expect(LoopingReminderJob).to have_received(:set)
       end
 
-      it "broadcasts replace to update the loop row with correct partial and locals" do
-        responder.respond(command: { intent: :run_loop, params: { number: 1 } }, user: user)
-
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
-          user,
-          target: "looping_reminder_#{reminder.id}",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
+      it_behaves_like "broadcasts loop replace"
 
       context "when loop is already active" do
         before { reminder.activate! }
@@ -694,6 +708,7 @@ RSpec.describe CommandResponder do
 
     context "with :stop_loop intent" do
       let!(:reminder) { create(:looping_reminder, user: user, active: true) }
+      let(:loop_command) { { intent: :stop_loop, params: { looping_reminder_id: reminder.id } } }
 
       it "stops the loop and synthesizes confirmation" do
         responder.respond(command: { intent: :stop_loop, params: { looping_reminder_id: reminder.id } }, user: user)
@@ -705,16 +720,7 @@ RSpec.describe CommandResponder do
         expect(reminder.reload.active).to be(false)
       end
 
-      it "broadcasts replace to update the loop row with correct partial and locals" do
-        responder.respond(command: { intent: :stop_loop, params: { looping_reminder_id: reminder.id } }, user: user)
-
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
-          user,
-          target: "looping_reminder_#{reminder.id}",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
+      it_behaves_like "broadcasts loop replace"
 
       context "when looping reminder is not found" do
         it "synthesizes a not-found response" do
@@ -746,6 +752,7 @@ RSpec.describe CommandResponder do
     context "with :alias_loop intent" do
       let!(:reminder) { create(:looping_reminder, user: user, number: 1) }
       let(:alias_cmd) { { intent: :alias_loop, params: { number: 1, target: "remember the dishes" } } }
+      let(:loop_command) { alias_cmd }
 
       it "creates a CommandAlias and synthesizes confirmation" do
         expect {
@@ -764,16 +771,7 @@ RSpec.describe CommandResponder do
         expect(CommandAlias.last.phrase).to eq("remember the dishes")
       end
 
-      it "broadcasts replace to update the loop row with correct partial and locals" do
-        responder.respond(command: alias_cmd, user: user)
-
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
-          user,
-          target: "looping_reminder_#{reminder.id}",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
+      it_behaves_like "broadcasts loop replace"
 
       it "broadcasts the reminder with command_aliases preloaded" do
         responder.respond(command: alias_cmd, user: user)
@@ -882,6 +880,7 @@ RSpec.describe CommandResponder do
           }
         }
       end
+      let(:loop_command) { complete_stop_cmd }
 
       it "creates a LoopingReminder with the replacement phrase as stop_phrase" do
         expect {
@@ -912,31 +911,8 @@ RSpec.describe CommandResponder do
         )
       end
 
-      it "schedules LoopingReminderJob with exact timing and loop arguments" do
-        freeze_time do
-          fire_at = 5.minutes.from_now
-          job_proxy = double("job_proxy", perform_later: nil)
-          allow(LoopingReminderJob).to receive(:set).and_return(job_proxy)
-
-          responder.respond(command: complete_stop_cmd, user: user)
-          reminder = LoopingReminder.last
-
-          expect(LoopingReminderJob).to have_received(:set).with(wait_until: fire_at)
-          expect(job_proxy).to have_received(:perform_later).with(reminder.id, fire_at)
-        end
-      end
-
-      it "broadcasts append to looping_reminders list with correct partial and locals" do
-        responder.respond(command: complete_stop_cmd, user: user)
-        reminder = LoopingReminder.last
-
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to).with(
-          user,
-          target: "looping_reminders",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
+      it_behaves_like "schedules LoopingReminderJob"
+      it_behaves_like "broadcasts loop append"
     end
 
     context "with :complete_pending intent (alias_phrase_replacement)" do
@@ -950,6 +926,7 @@ RSpec.describe CommandResponder do
           }
         }
       end
+      let(:loop_command) { complete_alias_cmd }
 
       it "creates a CommandAlias with the replacement phrase" do
         expect {
@@ -968,16 +945,7 @@ RSpec.describe CommandResponder do
         )
       end
 
-      it "broadcasts replace to update the loop row with correct partial and locals" do
-        responder.respond(command: complete_alias_cmd, user: user)
-
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to).with(
-          user,
-          target: "looping_reminder_#{reminder.id}",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
+      it_behaves_like "broadcasts loop replace"
     end
   end
 end

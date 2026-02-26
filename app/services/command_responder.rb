@@ -30,33 +30,39 @@ class CommandResponder
       params = command[:params]
       "Daily reminder: #{format_time(params[:hour], params[:minute])} - #{params[:message]}"
     when :reminder
-      params = command[:params]
-      time_str = format_time(params[:hour], params[:minute])
-      tomorrow = resolve_reminder_time(params, user).to_date > Time.current.in_time_zone(user.timezone).to_date
-      "Reminder set for #{time_str}#{' tomorrow' if tomorrow} to #{params[:message]}"
-    when :create_loop
-      handle_create_loop(command[:params], user)
-    when :run_loop
-      handle_run_loop(command[:params], user)
-    when :stop_loop
-      handle_stop_loop(command[:params], user)
-    when :alias_loop
-      handle_alias_loop(command[:params], user)
-    when :complete_pending
-      handle_complete_pending(command[:params], user)
-    when :give_up
-      "OK, giving up."
+      reminder_response_text(command[:params], user)
+    when :create_loop, :run_loop, :stop_loop, :alias_loop, :complete_pending, :give_up
+      loop_response_text(command, user)
     else
-      if command[:params][:error] == :replacement_phrase_taken
-        kind = command[:params][:kind]
-        if kind == "alias_phrase_replacement"
-          "Alias phrase also already in use. Try another, or say 'give up' to cancel."
-        else
-          "Stop phrase also already in use. Try another, or say 'give up' to cancel."
-        end
-      else
-        "Sorry, I didn't understand that"
-      end
+      unknown_response_text(command)
+    end
+  end
+
+  def reminder_response_text(params, user)
+    time_str = format_time(params[:hour], params[:minute])
+    tomorrow = resolve_reminder_time(params, user).to_date > Time.current.in_time_zone(user.timezone).to_date
+    "Reminder set for #{time_str}#{' tomorrow' if tomorrow} to #{params[:message]}"
+  end
+
+  def loop_response_text(command, user)
+    case command[:intent]
+    when :create_loop     then handle_create_loop(command[:params], user)
+    when :run_loop        then handle_run_loop(command[:params], user)
+    when :stop_loop       then handle_stop_loop(command[:params], user)
+    when :alias_loop      then handle_alias_loop(command[:params], user)
+    when :complete_pending then handle_complete_pending(command[:params], user)
+    when :give_up         then "OK, giving up."
+    end
+  end
+
+  def unknown_response_text(command)
+    return "Sorry, I didn't understand that" unless command[:params][:error] == :replacement_phrase_taken
+
+    kind = command[:params][:kind]
+    if kind == "alias_phrase_replacement"
+      "Alias phrase also already in use. Try another, or say 'give up' to cancel."
+    else
+      "Stop phrase also already in use. Try another, or say 'give up' to cancel."
     end
   end
 

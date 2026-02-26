@@ -29,8 +29,7 @@ class CommandParser
     end
 
     if (m = normalized.match(/\balias\s+'([^']+)'\s+as\s+'([^']+)'/i))
-      number = m[1].match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i)&.then { |nm| nm[1].to_i }
-      return { intent: :alias_loop, params: { number: number, target: m[2].strip } }
+      return { intent: :alias_loop, params: { number: alias_loop_number(m[1]), target: m[2].strip } }
     end
 
     if (m = normalized.match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i))
@@ -49,6 +48,10 @@ class CommandParser
   end
 
   private
+
+  def alias_loop_number(source)
+    source.match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i)&.then { |m| m[1].to_i }
+  end
 
   def daily_reminder_match(normalized)
     normalized.match(/\bdaily\s+#{REMINDER_TIME_AND_MESSAGE}/) ||
