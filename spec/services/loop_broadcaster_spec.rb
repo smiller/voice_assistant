@@ -9,7 +9,6 @@ RSpec.describe LoopBroadcaster do
   before do
     allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
     allow(Turbo::StreamsChannel).to receive(:broadcast_append_to)
-    allow(Turbo::StreamsChannel).to receive(:broadcast_before_to)
   end
 
   describe "#replace" do
@@ -37,57 +36,15 @@ RSpec.describe LoopBroadcaster do
   end
 
   describe "#append" do
-    context "when no higher-numbered reminder exists" do
-      it "broadcasts append to the looping_reminders list" do
-        broadcaster.append(reminder)
+    it "broadcasts append to the looping_reminders list" do
+      broadcaster.append(reminder)
 
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to).with(
-          user,
-          target: "looping_reminders",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
-    end
-
-    context "when multiple higher-numbered reminders exist" do
-      # Create further (higher number) first so insertion order != number order.
-      # Without .order(:number) the DB would return further first (insertion order),
-      # killing the mutant that removes or noops the order clause.
-      let!(:further) { create(:looping_reminder, user: user, number: reminder.number + 5) }
-      let!(:next_up) { create(:looping_reminder, user: user, number: reminder.number + 1) }
-
-      it "broadcasts before the immediately next higher reminder, not a farther one" do
-        broadcaster.append(reminder)
-
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_before_to).with(
-          user,
-          target: "looping_reminder_#{next_up.id}",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
-    end
-
-    context "when a higher-numbered reminder exists" do
-      let!(:higher) { create(:looping_reminder, user: user, number: reminder.number + 1) }
-
-      it "broadcasts before the higher-numbered sibling" do
-        broadcaster.append(reminder)
-
-        expect(Turbo::StreamsChannel).to have_received(:broadcast_before_to).with(
-          user,
-          target: "looping_reminder_#{higher.id}",
-          partial: "looping_reminders/looping_reminder",
-          locals: { looping_reminder: reminder }
-        )
-      end
-
-      it "does not broadcast_append_to when inserting before a sibling" do
-        broadcaster.append(reminder)
-
-        expect(Turbo::StreamsChannel).not_to have_received(:broadcast_append_to)
-      end
+      expect(Turbo::StreamsChannel).to have_received(:broadcast_append_to).with(
+        user,
+        target: "looping_reminders",
+        partial: "looping_reminders/looping_reminder",
+        locals: { looping_reminder: reminder }
+      )
     end
   end
 end

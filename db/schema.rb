@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_26_055204) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_26_061610) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -76,7 +76,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_055204) do
     t.string "kind", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["user_id", "kind"], name: "index_pending_interactions_on_user_id_and_kind"
+    t.index ["user_id", "expires_at"], name: "index_pending_interactions_on_user_id_and_expires_at"
     t.index ["user_id"], name: "index_pending_interactions_on_user_id"
   end
 

@@ -165,7 +165,7 @@ class CommandResponder
   end
 
   def handle_alias_loop(params, user)
-    reminder = params[:number] && user.looping_reminders.find_by(number: params[:number])
+    reminder = user.looping_reminders.find_by(number: params[:number])
     return "Loop #{params[:number] || '?'} not found" unless reminder
 
     if user.phrase_taken?(params[:target])
@@ -182,16 +182,15 @@ class CommandResponder
   end
 
   def handle_complete_pending(params, user)
-    opts = params.with_indifferent_access
-    if opts[:kind] == "alias_phrase_replacement"
-      reminder = user.looping_reminders.find(opts[:looping_reminder_id])
-      create_command_alias(user: user, looping_reminder: reminder, phrase: opts[:replacement_phrase])
+    if params[:kind] == "alias_phrase_replacement"
+      reminder = user.looping_reminders.find(params[:looping_reminder_id])
+      create_command_alias(user: user, looping_reminder: reminder, phrase: params[:replacement_phrase])
     else
       create_looping_reminder(
         user: user,
-        interval_minutes: opts[:interval_minutes],
-        message: opts[:message],
-        stop_phrase: opts[:replacement_phrase]
+        interval_minutes: params[:interval_minutes],
+        message: params[:message],
+        stop_phrase: params[:replacement_phrase]
       )
     end
   end

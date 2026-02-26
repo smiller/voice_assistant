@@ -427,7 +427,6 @@ RSpec.describe CommandResponder do
   describe "#respond with loop commands" do
     before do
       allow(Turbo::StreamsChannel).to receive(:broadcast_append_to)
-      allow(Turbo::StreamsChannel).to receive(:broadcast_before_to)
       allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
       allow(LoopingReminderJob).to receive(:set).and_return(double(perform_later: nil))
     end
@@ -511,32 +510,6 @@ RSpec.describe CommandResponder do
 
       it_behaves_like "schedules LoopingReminderJob"
       it_behaves_like "broadcasts loop append"
-
-      context "when a higher-numbered looping reminder already exists" do
-        # Simulate a lower number being assigned (e.g. after a gap) by stubbing next_number_for
-        let!(:higher_reminder) { create(:looping_reminder, user: user, number: 5) }
-
-        before { allow(LoopingReminder).to receive(:next_number_for).and_return(3) }
-
-        it "broadcasts before the higher-numbered sibling instead of appending" do
-          responder.respond(command: create_cmd, user: user)
-          new_reminder = user.looping_reminders.find_by(number: 3)
-
-          expect(Turbo::StreamsChannel).to have_received(:broadcast_before_to).with(
-            user,
-            target: ActionView::RecordIdentifier.dom_id(higher_reminder),
-            partial: "looping_reminders/looping_reminder",
-            locals: { looping_reminder: new_reminder }
-          )
-        end
-
-        it "does not broadcast_append_to the looping_reminders list when inserting before a sibling" do
-          responder.respond(command: create_cmd, user: user)
-
-          expect(Turbo::StreamsChannel).not_to have_received(:broadcast_append_to)
-            .with(user, hash_including(target: "looping_reminders"))
-        end
-      end
 
       it "uses singular 'minute' when interval_minutes is 1" do
         cmd = { intent: :create_loop, params: { interval_minutes: 1, message: "check in", stop_phrase: "done" } }
@@ -806,6 +779,19 @@ RSpec.describe CommandResponder do
           expect {
             responder.respond(command: bad_cmd, user: user)
           }.not_to change(CommandAlias, :count)
+        end
+      end
+
+      context "when number is given but no reminder matches" do
+        let(:bad_cmd) { { intent: :alias_loop, params: { number: 99, target: "do the thing" } } }
+
+        it "includes the given number in the not-found message" do
+          responder.respond(command: bad_cmd, user: user)
+
+          expect(tts_client).to have_received(:synthesize).with(
+            text: "Loop 99 not found",
+            voice_id: user.elevenlabs_voice_id
+          )
         end
       end
 
