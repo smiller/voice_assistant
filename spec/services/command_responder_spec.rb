@@ -427,6 +427,7 @@ RSpec.describe CommandResponder do
   describe "#respond with loop commands" do
     before do
       allow(Turbo::StreamsChannel).to receive(:broadcast_append_to)
+      allow(Turbo::StreamsChannel).to receive(:broadcast_before_to)
       allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
       allow(LoopingReminderJob).to receive(:set).and_return(double(perform_later: nil))
     end
@@ -477,7 +478,7 @@ RSpec.describe CommandResponder do
         end
       end
 
-      it "broadcasts append to looping_reminders list with correct partial and locals" do
+      it "broadcasts append to looping_reminders list when there is no higher-numbered sibling" do
         responder.respond(command: create_cmd, user: user)
         reminder = LoopingReminder.last
 
@@ -487,6 +488,32 @@ RSpec.describe CommandResponder do
           partial: "looping_reminders/looping_reminder",
           locals: { looping_reminder: reminder }
         )
+      end
+
+      context "when a higher-numbered looping reminder already exists" do
+        # Simulate a lower number being assigned (e.g. after a gap) by stubbing next_number_for
+        let!(:higher_reminder) { create(:looping_reminder, user: user, number: 5) }
+
+        before { allow(LoopingReminder).to receive(:next_number_for).and_return(3) }
+
+        it "broadcasts before the higher-numbered sibling instead of appending" do
+          responder.respond(command: create_cmd, user: user)
+          new_reminder = user.looping_reminders.find_by(number: 3)
+
+          expect(Turbo::StreamsChannel).to have_received(:broadcast_before_to).with(
+            user,
+            target: ActionView::RecordIdentifier.dom_id(higher_reminder),
+            partial: "looping_reminders/looping_reminder",
+            locals: { looping_reminder: new_reminder }
+          )
+        end
+
+        it "does not broadcast_append_to the looping_reminders list when inserting before a sibling" do
+          responder.respond(command: create_cmd, user: user)
+
+          expect(Turbo::StreamsChannel).not_to have_received(:broadcast_append_to)
+            .with(user, hash_including(target: "looping_reminders"))
+        end
       end
 
       it "uses singular 'minute' when interval_minutes is 1" do
@@ -746,6 +773,14 @@ RSpec.describe CommandResponder do
           partial: "looping_reminders/looping_reminder",
           locals: { looping_reminder: reminder }
         )
+      end
+
+      it "broadcasts the reminder with command_aliases preloaded" do
+        responder.respond(command: alias_cmd, user: user)
+
+        expect(Turbo::StreamsChannel).to have_received(:broadcast_replace_to) do |_, **kwargs|
+          expect(kwargs[:locals][:looping_reminder].association(:command_aliases).loaded?).to be(true)
+        end
       end
 
       context "when loop number is not found in source" do

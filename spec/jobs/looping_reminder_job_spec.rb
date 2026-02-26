@@ -111,11 +111,17 @@ RSpec.describe LoopingReminderJob do
     context "when ElevenLabsClient raises an error" do
       before { allow(tts_client).to receive(:synthesize).and_raise(ElevenLabsClient::Error) }
 
-      it "discards the job without raising" do
+      it "does not propagate (retry is handled by the framework)" do
         expect { described_class.perform_now(reminder.id, scheduled_fire_at) }.not_to raise_error
       end
 
-      it "does not re-enqueue" do
+      it "re-enqueues for retry rather than discarding" do
+        expect {
+          described_class.perform_now(reminder.id, scheduled_fire_at)
+        }.to have_enqueued_job(described_class)
+      end
+
+      it "does not enqueue its own chained next-fire job" do
         described_class.perform_now(reminder.id, scheduled_fire_at)
 
         expect(described_class).not_to have_received(:set)

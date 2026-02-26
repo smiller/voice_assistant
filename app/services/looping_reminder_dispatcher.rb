@@ -29,7 +29,10 @@ class LoopingReminderDispatcher
   end
 
   def match_alias(transcript, user)
-    user.command_aliases.find { |al| al.phrase.casecmp?(transcript.strip) }
+    user.command_aliases
+        .includes(:looping_reminder)
+        .where("LOWER(phrase) = ?", transcript.strip.downcase)
+        .first
   end
 
   def handle_pending_interaction(pending, transcript, user)
@@ -40,7 +43,7 @@ class LoopingReminderDispatcher
       return { intent: :give_up, params: {} }
     end
 
-    if phrase_taken?(phrase, user)
+    if user.phrase_taken?(phrase)
       pending.update!(expires_at: 5.minutes.from_now)
       return { intent: :unknown,
                params: { error: :replacement_phrase_taken, kind: pending.kind } }
@@ -50,10 +53,5 @@ class LoopingReminderDispatcher
     pending.destroy
     { intent: :complete_pending,
       params: context.merge(replacement_phrase: phrase, kind: pending.kind) }
-  end
-
-  def phrase_taken?(phrase, user)
-    user.looping_reminders.where("LOWER(stop_phrase) = ?", phrase.downcase).exists? ||
-      user.command_aliases.where("LOWER(phrase) = ?", phrase.downcase).exists?
   end
 end

@@ -1,9 +1,8 @@
 <li id="<%= dom_id(looping_reminder) %>">
   <span>
     <%= looping_reminder.number %>
-    <% if looping_reminder.command_aliases.any? %>
-      (<%= looping_reminder.command_aliases.map(&:phrase).join(", ") %>)
-    <% end %>
+    <% aliases = looping_reminder.command_aliases.map(&:phrase).join(", ") %>
+    <% if aliases.present? %>(<%= aliases %>)<% end %>
     <% if looping_reminder.active? %>
       · active
     <% end %>

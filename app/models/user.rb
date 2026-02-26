@@ -7,6 +7,11 @@ class User < ApplicationRecord
 
   after_initialize :set_defaults, if: :new_record?
 
+  def phrase_taken?(phrase)
+    looping_reminders.where("LOWER(stop_phrase) = ?", phrase.downcase).exists? ||
+      command_aliases.where("LOWER(phrase) = ?", phrase.downcase).exists?
+  end
+
   private
 
   def set_defaults

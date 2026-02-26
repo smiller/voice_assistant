@@ -2,7 +2,8 @@ class LoopingReminderJob < ApplicationJob
   include ActionView::RecordIdentifier
 
   queue_as :default
-  discard_on StandardError
+  discard_on ActiveRecord::RecordNotFound
+  retry_on ElevenLabsClient::Error, wait: :polynomially_longer, attempts: 5
 
   def perform(looping_reminder_id, scheduled_fire_at)
     reminder = LoopingReminder.find_by(id: looping_reminder_id)

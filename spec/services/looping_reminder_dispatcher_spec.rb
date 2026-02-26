@@ -79,11 +79,20 @@ RSpec.describe LoopingReminderDispatcher do
         expect(result[:params][:number]).to eq(2)
       end
 
-      it "is case-insensitive for alias matching" do
+      it "is case-insensitive for alias matching (uppercase phrase, lowercase transcript)" do
         reminder = create(:looping_reminder, user: user, number: 1)
         create(:command_alias, user: user, looping_reminder: reminder, phrase: "Remember The Dishes")
 
         result = dispatcher.dispatch(transcript: "remember the dishes", user: user)
+
+        expect(result[:intent]).to eq(:run_loop)
+      end
+
+      it "is case-insensitive for alias matching (lowercase phrase, uppercase transcript)" do
+        reminder = create(:looping_reminder, user: user, number: 1)
+        create(:command_alias, user: user, looping_reminder: reminder, phrase: "remember the dishes")
+
+        result = dispatcher.dispatch(transcript: "REMEMBER THE DISHES", user: user)
 
         expect(result[:intent]).to eq(:run_loop)
       end

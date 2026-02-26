@@ -104,7 +104,7 @@ class CommandResponder
   end
 
   def handle_create_loop(params, user)
-    if phrase_taken_for_user?(params[:stop_phrase], user)
+    if user.phrase_taken?(params[:stop_phrase])
       PendingInteraction.create!(
         user: user,
         kind: "stop_phrase_replacement",
@@ -114,19 +114,12 @@ class CommandResponder
       return "Stop phrase already in use. Enter a different stop phrase?"
     end
 
-    reminder = LoopingReminder.transaction do
-      LoopingReminder.create!(
-        user: user,
-        number: LoopingReminder.next_number_for(user),
-        interval_minutes: params[:interval_minutes],
-        message: params[:message],
-        stop_phrase: params[:stop_phrase],
-        active: true
-      )
-    end
-    schedule_loop_job(reminder)
-    broadcast_loop_append(reminder)
-    loop_created_text(reminder)
+    create_looping_reminder(
+      user: user,
+      interval_minutes: params[:interval_minutes],
+      message: params[:message],
+      stop_phrase: params[:stop_phrase]
+    )
   end
 
   def handle_run_loop(params, user)
@@ -138,12 +131,7 @@ class CommandResponder
     else
       reminder.activate!
       schedule_loop_job(reminder)
-      Turbo::StreamsChannel.broadcast_replace_to(
-        user,
-        target: dom_id(reminder),
-        partial: "looping_reminders/looping_reminder",
-        locals: { looping_reminder: reminder }
-      )
+      broadcast_loop_replace(user, reminder)
       "Running looping reminder #{reminder.number}"
     end
   end
@@ -153,12 +141,7 @@ class CommandResponder
     return "Looping reminder not found" unless reminder
 
     reminder.stop!
-    Turbo::StreamsChannel.broadcast_replace_to(
-      user,
-      target: dom_id(reminder),
-      partial: "looping_reminders/looping_reminder",
-      locals: { looping_reminder: reminder }
-    )
+    broadcast_loop_replace(user, reminder)
     "Excellent. Stopping looping reminder #{reminder.number}"
   end
 
@@ -167,7 +150,7 @@ class CommandResponder
     reminder = number && user.looping_reminders.find_by(number: number)
     return "Loop #{number || '?'} not found" unless reminder
 
-    if phrase_taken_for_user?(params[:target], user)
+    if user.phrase_taken?(params[:target])
       PendingInteraction.create!(
         user: user,
         kind: "alias_phrase_replacement",
@@ -177,43 +160,54 @@ class CommandResponder
       return "Alias phrase already in use. Enter a different phrase?"
     end
 
-    CommandAlias.create!(user: user, looping_reminder: reminder, phrase: params[:target])
-    Turbo::StreamsChannel.broadcast_replace_to(
-      user,
-      target: dom_id(reminder),
-      partial: "looping_reminders/looping_reminder",
-      locals: { looping_reminder: reminder }
-    )
-    "Alias '#{params[:target]}' created for looping reminder #{reminder.number}"
+    create_command_alias(user: user, looping_reminder: reminder, phrase: params[:target])
   end
 
   def handle_complete_pending(params, user)
     opts = params.with_indifferent_access
     if opts[:kind] == "alias_phrase_replacement"
       reminder = user.looping_reminders.find(opts[:looping_reminder_id])
-      CommandAlias.create!(user: user, looping_reminder: reminder, phrase: opts[:replacement_phrase])
-      Turbo::StreamsChannel.broadcast_replace_to(
-        user,
-        target: dom_id(reminder),
-        partial: "looping_reminders/looping_reminder",
-        locals: { looping_reminder: reminder }
-      )
-      "Alias '#{opts[:replacement_phrase]}' created for looping reminder #{reminder.number}"
+      create_command_alias(user: user, looping_reminder: reminder, phrase: opts[:replacement_phrase])
     else
-      reminder = LoopingReminder.transaction do
-        LoopingReminder.create!(
-          user: user,
-          number: LoopingReminder.next_number_for(user),
-          interval_minutes: opts[:interval_minutes],
-          message: opts[:message],
-          stop_phrase: opts[:replacement_phrase],
-          active: true
-        )
-      end
-      schedule_loop_job(reminder)
-      broadcast_loop_append(reminder)
-      loop_created_text(reminder)
+      create_looping_reminder(
+        user: user,
+        interval_minutes: opts[:interval_minutes],
+        message: opts[:message],
+        stop_phrase: opts[:replacement_phrase]
+      )
     end
+  end
+
+  def create_looping_reminder(user:, interval_minutes:, message:, stop_phrase:)
+    reminder = LoopingReminder.transaction do
+      LoopingReminder.create!(
+        user: user,
+        number: LoopingReminder.next_number_for(user),
+        interval_minutes: interval_minutes,
+        message: message,
+        stop_phrase: stop_phrase,
+        active: true
+      )
+    end
+    schedule_loop_job(reminder)
+    broadcast_loop_append(reminder)
+    loop_created_text(reminder)
+  end
+
+  def create_command_alias(user:, looping_reminder:, phrase:)
+    CommandAlias.create!(user: user, looping_reminder: looping_reminder, phrase: phrase)
+    broadcast_loop_replace(user, looping_reminder)
+    "Alias '#{phrase}' created for looping reminder #{looping_reminder.number}"
+  end
+
+  def broadcast_loop_replace(user, reminder)
+    reminder_with_aliases = user.looping_reminders.includes(:command_aliases).find(reminder.id)
+    Turbo::StreamsChannel.broadcast_replace_to(
+      user,
+      target: dom_id(reminder_with_aliases),
+      partial: "looping_reminders/looping_reminder",
+      locals: { looping_reminder: reminder_with_aliases }
+    )
   end
 
   def schedule_loop_job(reminder)
@@ -222,23 +216,31 @@ class CommandResponder
   end
 
   def broadcast_loop_append(reminder)
-    Turbo::StreamsChannel.broadcast_append_to(
-      reminder.user,
-      target: "looping_reminders",
-      partial: "looping_reminders/looping_reminder",
-      locals: { looping_reminder: reminder }
-    )
+    next_reminder = reminder.user.looping_reminders
+                             .where("number > ?", reminder.number)
+                             .order(:number).first
+
+    if next_reminder
+      Turbo::StreamsChannel.broadcast_before_to(
+        reminder.user,
+        target: dom_id(next_reminder),
+        partial: "looping_reminders/looping_reminder",
+        locals: { looping_reminder: reminder }
+      )
+    else
+      Turbo::StreamsChannel.broadcast_append_to(
+        reminder.user,
+        target: "looping_reminders",
+        partial: "looping_reminders/looping_reminder",
+        locals: { looping_reminder: reminder }
+      )
+    end
   end
 
   def loop_created_text(reminder)
     mins = reminder.interval_minutes
     "Created looping reminder #{reminder.number}, will ask '#{reminder.message}' every " \
       "#{mins} #{"minute".pluralize(mins)} until you reply '#{reminder.stop_phrase}'"
-  end
-
-  def phrase_taken_for_user?(phrase, user)
-    user.looping_reminders.where("LOWER(stop_phrase) = ?", phrase.downcase).exists? ||
-      user.command_aliases.where("LOWER(phrase) = ?", phrase.downcase).exists?
   end
 
   def resolve_reminder_time(params, user)

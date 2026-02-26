@@ -128,6 +128,47 @@ RSpec.describe User do
     end
   end
 
+  describe "#phrase_taken?" do
+    let(:user) { create(:user) }
+
+    it "returns true when stop phrase matches a looping reminder case-insensitively" do
+      create(:looping_reminder, user: user, stop_phrase: "doing the dishes")
+
+      expect(user.phrase_taken?("Doing The Dishes")).to be(true)
+    end
+
+    it "returns true when phrase matches a command alias case-insensitively" do
+      other = create(:looping_reminder, user: user)
+      create(:command_alias, user: user, looping_reminder: other, phrase: "do the thing")
+
+      expect(user.phrase_taken?("DO THE THING")).to be(true)
+    end
+
+    it "returns false when neither association has a match" do
+      expect(user.phrase_taken?("something unique")).to be(false)
+    end
+
+    it "returns false when user has looping reminders with a different stop phrase" do
+      create(:looping_reminder, user: user, stop_phrase: "not a match")
+
+      expect(user.phrase_taken?("doing the dishes")).to be(false)
+    end
+
+    it "returns false when user has aliases with a different phrase" do
+      other = create(:looping_reminder, user: user)
+      create(:command_alias, user: user, looping_reminder: other, phrase: "not a match")
+
+      expect(user.phrase_taken?("do the thing")).to be(false)
+    end
+
+    it "does not match another user's phrases" do
+      other_user = create(:user)
+      create(:looping_reminder, user: other_user, stop_phrase: "their phrase")
+
+      expect(user.phrase_taken?("their phrase")).to be(false)
+    end
+  end
+
   describe "#authenticate" do
     let(:user) { create(:user, password: "correct_horse") }
 
