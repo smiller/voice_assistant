@@ -452,6 +452,17 @@ RSpec.describe CommandParser do
       end
     end
 
+    context "without quotes around message and stop phrase (as transcribed by speech-to-text)" do
+      it "parses the command without quotes" do
+        result = parser.parse("set looping reminder every 2 minutes saying did you sleep until i say sleeping")
+
+        expect(result[:intent]).to eq(:create_loop)
+        expect(result[:params][:interval_minutes]).to eq(2)
+        expect(result[:params][:message]).to eq("did you sleep")
+        expect(result[:params][:stop_phrase]).to eq("sleeping")
+      end
+    end
+
     context "with 'run loop 1'" do
       it "returns :run_loop intent with number param" do
         result = parser.parse("run loop 1")
