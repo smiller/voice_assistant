@@ -1,9 +1,14 @@
+plugins:
+  - rubocop-erb
+
 inherit_gem:
   rubocop-rails-omakase: rubocop.yml
 
 AllCops:
   NewCops: enable
   TargetRubyVersion: 4.0
+  Include:
+    - "**/*.erb"
   Exclude:
     - "db/schema.rb"
     - "db/migrate/*.rb"
