@@ -23,6 +23,8 @@ class CommandResponder
       simple_command_text(command[:intent], user)
     when :timer
       timer_text(command[:params][:minutes])
+    when :relative_reminder
+      relative_reminder_text(command[:params])
     when :daily_reminder
       daily_reminder_text(command[:params])
     when :reminder
@@ -77,13 +79,17 @@ class CommandResponder
     "Timer set for #{minutes} #{"minute".pluralize(minutes)}"
   end
 
+  def relative_reminder_text(params)
+    "Reminder set for #{params[:minutes]} #{"minute".pluralize(params[:minutes])} from now to #{params[:message]}"
+  end
+
   def daily_reminder_text(params)
     "Daily reminder: #{format_time(params[:hour], params[:minute])} - #{params[:message]}"
   end
 
   def schedule_reminder(command, user)
     fire_at = case command[:intent]
-    when :timer
+    when :timer, :relative_reminder
       command[:params][:minutes].minutes.from_now
     when :reminder, :daily_reminder
       resolve_reminder_time(command[:params], user)
@@ -98,7 +104,8 @@ class CommandResponder
     end
 
     recurs = command[:intent] == :daily_reminder
-    reminder = Reminder.create!(user: user, kind: command[:intent], message: message, fire_at: fire_at, recurs_daily: recurs)
+    kind = command[:intent] == :relative_reminder ? :reminder : command[:intent]
+    reminder = Reminder.create!(user: user, kind: kind, message: message, fire_at: fire_at, recurs_daily: recurs)
     ReminderJob.set(wait_until: fire_at).perform_later(reminder.id)
 
     next_reminder = reminder.next_in_list

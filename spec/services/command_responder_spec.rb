@@ -294,6 +294,48 @@ RSpec.describe CommandResponder do
       end
     end
 
+    context "with a relative reminder command" do
+      it "synthesizes confirmation with minute count and message" do
+        command = { intent: :relative_reminder, params: { minutes: 20, message: "take the food out" } }
+
+        responder.respond(command: command, user: user)
+
+        expect(tts_client).to have_received(:synthesize)
+          .with(text: "Reminder set for 20 minutes from now to take the food out", voice_id: user.elevenlabs_voice_id)
+      end
+
+      it "uses singular 'minute' when minutes is 1" do
+        command = { intent: :relative_reminder, params: { minutes: 1, message: "check the oven" } }
+
+        responder.respond(command: command, user: user)
+
+        expect(tts_client).to have_received(:synthesize)
+          .with(text: "Reminder set for 1 minute from now to check the oven", voice_id: user.elevenlabs_voice_id)
+      end
+
+      it "creates a Reminder with kind reminder, fire_at N minutes from now, and recurs_daily false" do
+        travel_to Time.new(2026, 2, 23, 14, 0, 0, "UTC") do
+          expect {
+            responder.respond(command: { intent: :relative_reminder, params: { minutes: 20, message: "take the food out" } }, user: user)
+          }.to change(Reminder, :count).by(1)
+
+          reminder = Reminder.last
+          expect(reminder.kind).to eq("reminder")
+          expect(reminder.fire_at).to be_within(1.second).of(20.minutes.from_now)
+          expect(reminder.message).to eq("take the food out")
+          expect(reminder.recurs_daily).to be(false)
+        end
+      end
+
+      it "enqueues a ReminderJob N minutes from now" do
+        travel_to Time.new(2026, 2, 23, 14, 0, 0, "UTC") do
+          expect {
+            responder.respond(command: { intent: :relative_reminder, params: { minutes: 20, message: "take the food out" } }, user: user)
+          }.to have_enqueued_job(ReminderJob).at(20.minutes.from_now).with(be_a(Integer))
+        end
+      end
+    end
+
     context "with a reminder at a non-zero minute" do
       it "includes the minutes in the confirmation text" do
         travel_to Time.new(2026, 2, 23, 5, 0, 0, "UTC") do
@@ -345,9 +387,10 @@ RSpec.describe CommandResponder do
       before { allow(Turbo::StreamsChannel).to receive(:broadcast_append_to) }
 
       {
-        timer:          [ { minutes: 5 },                                      "timers",          Time.new(2026, 2, 23, 14, 0, 0, "UTC") ],
-        reminder:       [ { hour: 21, minute: 0, message: "take medication" }, "reminders",       Time.new(2026, 2, 23, 12, 0, 0, "UTC") ],
-        daily_reminder: [ { hour: 7,  minute: 0, message: "exercise" },        "daily_reminders", Time.new(2026, 2, 23, 12, 0, 0, "UTC") ]
+        timer:             [ { minutes: 5 },                                      "timers",          Time.new(2026, 2, 23, 14, 0, 0, "UTC") ],
+        reminder:          [ { hour: 21, minute: 0, message: "take medication" }, "reminders",       Time.new(2026, 2, 23, 12, 0, 0, "UTC") ],
+        daily_reminder:    [ { hour: 7,  minute: 0, message: "exercise" },        "daily_reminders", Time.new(2026, 2, 23, 12, 0, 0, "UTC") ],
+        relative_reminder: [ { minutes: 20, message: "check the oven" },          "reminders",       Time.new(2026, 2, 23, 14, 0, 0, "UTC") ]
       }.each do |intent, (params, target, time)|
         it "broadcasts #{intent} append to the #{target} target" do
           travel_to time do
@@ -413,6 +456,23 @@ RSpec.describe CommandResponder do
         let(:insert_time)      { Time.new(2026, 2, 23, 5, 0, 0, "UTC") }
         let(:insert_command)   { { intent: :daily_reminder, params: { hour: 7, minute: 0, message: "write morning pages" } } }
         let(:inserted_message) { "write morning pages" }
+
+        before do
+          allow(Turbo::StreamsChannel).to receive(:broadcast_before_to)
+          later_sibling
+        end
+
+        it_behaves_like "broadcasts before later_sibling"
+      end
+
+      context "when a later-firing reminder already exists and a relative reminder inserts before it" do
+        let(:later_sibling) do
+          create(:reminder, user: user, message: "later event",
+                 fire_at: Time.new(2026, 2, 23, 19, 0, 0, "UTC"))
+        end
+        let(:insert_time)      { Time.new(2026, 2, 23, 18, 30, 0, "UTC") }
+        let(:insert_command)   { { intent: :relative_reminder, params: { minutes: 20, message: "check the oven" } } }
+        let(:inserted_message) { "check the oven" }
 
         before do
           allow(Turbo::StreamsChannel).to receive(:broadcast_before_to)
