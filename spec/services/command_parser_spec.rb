@@ -354,6 +354,14 @@ RSpec.describe CommandParser do
         expect(result[:params][:minute]).to eq(0)
         expect(result[:params][:message]).to eq("write morning pages")
       end
+
+      it "parses 'set a daily reminder at 9pm' (with article 'a')" do
+        result = parser.parse("set a daily reminder at 9pm to take medication")
+
+        expect(result[:intent]).to eq(:daily_reminder)
+        expect(result[:params][:hour]).to eq(21)
+        expect(result[:params][:message]).to eq("take medication")
+      end
     end
 
     context "with 'set reminder at 7:30am to do yoga' (alternate word order, with minutes)" do
@@ -373,6 +381,14 @@ RSpec.describe CommandParser do
 
         expect(result[:intent]).to eq(:reminder)
         expect(result[:params][:hour]).to eq(21)
+      end
+
+      it "parses 'set a reminder at 9pm' (with article 'a')" do
+        result = parser.parse("set a reminder at 9pm to take medication")
+
+        expect(result[:intent]).to eq(:reminder)
+        expect(result[:params][:hour]).to eq(21)
+        expect(result[:params][:message]).to eq("take medication")
       end
     end
 
@@ -579,6 +595,43 @@ RSpec.describe CommandParser do
 
         expect(result[:intent]).to eq(:alias_loop)
         expect(result[:params][:number]).to be_nil
+      end
+    end
+
+    context "with 'set a reminder in 20 minutes to take the food out of the oven'" do
+      it "returns :relative_reminder intent with minutes and message" do
+        result = parser.parse("set a reminder in 20 minutes to take the food out of the oven")
+
+        expect(result[:intent]).to eq(:relative_reminder)
+        expect(result[:params][:minutes]).to eq(20)
+        expect(result[:params][:message]).to eq("take the food out of the oven")
+      end
+    end
+
+    context "with spoken number word for relative reminder" do
+      it "normalises 'twenty' to 20" do
+        result = parser.parse("set a reminder in twenty minutes to check the oven")
+
+        expect(result[:intent]).to eq(:relative_reminder)
+        expect(result[:params][:minutes]).to eq(20)
+      end
+    end
+
+    context "with singular 'minute' for relative reminder" do
+      it "matches 'minute' as well as 'minutes'" do
+        result = parser.parse("set a reminder in 1 minute to check the oven")
+
+        expect(result[:intent]).to eq(:relative_reminder)
+        expect(result[:params][:minutes]).to eq(1)
+      end
+    end
+
+    context "without 'to' linking word in relative reminder (STT may omit it)" do
+      it "still parses the message" do
+        result = parser.parse("set a reminder in 5 minutes check the oven")
+
+        expect(result[:intent]).to eq(:relative_reminder)
+        expect(result[:params][:message]).to eq("check the oven")
       end
     end
   end

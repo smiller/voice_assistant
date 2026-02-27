@@ -27,10 +27,13 @@ Built with Claude Code and
 | "set a timer for 5 minutes" | Confirms with "Timer set for 5 minutes"; speaks "Timer finished after 5 minutes" when it fires |
 | "set a 9pm reminder to take medication" | Confirms; speaks "It's 9:00 PM. Reminder: take medication" at 9:00 PM in your timezone |
 | "set reminder at 9pm to take medication" | Same — alternate word order ("reminder at {time}" also works) |
+| "set a reminder at 9pm to take medication" | Same — article "a" before "reminder" is accepted |
 | "set reminder for 9pm to take medication" | Same — "reminder for {time}" also works |
 | "set a 9:30pm reminder to take medication" | Same, with minutes |
+| "set a reminder in 20 minutes to take the food out of the oven" | Confirms with "Reminder set for 20 minutes from now to …"; speaks "It's X PM. Reminder: take the food out of the oven" when it fires |
 | "set a daily 7am reminder to write morning pages" | Confirms; speaks "It's 7:00 AM. Reminder: write morning pages" every day at 7:00 AM and reschedules automatically |
 | "set daily reminder at 7am to write morning pages" | Same — alternate word order for daily reminders |
+| "set a daily reminder at 7am to write morning pages" | Same — article "a" before "daily reminder" is also accepted |
 | "set daily reminder for 7am to write morning pages" | Same — "reminder for {time}" also works for daily |
 | _(anything else)_ | "Sorry, I didn't understand that.  Please see the list of commands for voice commands I will understand." |
 

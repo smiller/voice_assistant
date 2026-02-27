@@ -18,25 +18,54 @@ class CommandResponder
   private
 
   def response_text(command, user)
-    case command[:intent]
-    when :time_check, :sunset
-      simple_command_text(command[:intent], user)
-    when :timer
-      timer_text(command[:params][:minutes])
-    when :daily_reminder
-      daily_reminder_text(command[:params])
-    when :reminder
-      reminder_response_text(command[:params], user)
-    when :create_loop, :run_loop, :stop_loop, :alias_loop, :complete_pending, :give_up
-      loop_response_text(command, user)
-    else
-      unknown_response_text(command)
+    simple_command_response_text(command, user)          ||
+      timer_response_text(command)                       ||
+      relative_reminder_response_text(command)           ||
+      daily_reminder_response_text(command)              ||
+      reminder_response_text(command, user)              ||
+      loop_response_text(command, user)                  ||
+      phrase_already_in_use_error_response_text(command) ||
+      unknown_response_text
+  end
+
+  def simple_command_response_text(command, user)
+    if command[:intent] == :time_check
+      time = Time.current.in_time_zone(user.timezone)
+      "The time is #{time.strftime("%-I:%M %p")}"
+    elsif command[:intent] == :sunset
+      sunset = @geo_client.sunset_time(lat: user.lat, lng: user.lng)
+      local = sunset.in_time_zone(user.timezone)
+      "Sunset today is at #{local.strftime("%-I:%M %p")}"
     end
   end
 
-  def reminder_response_text(params, user)
-    time_str = format_time(params[:hour], params[:minute])
-    tomorrow = resolve_reminder_time(params, user).to_date > Time.current.in_time_zone(user.timezone).to_date
+  def timer_response_text(command)
+    return unless command[:intent] == :timer
+
+    minutes = command[:params][:minutes]
+    "Timer set for #{minutes} #{"minute".pluralize(minutes)}"
+  end
+
+  def relative_reminder_response_text(command)
+    return unless command[:intent] == :relative_reminder
+
+    params = command[:params]
+    "Reminder set for #{params[:minutes]} #{"minute".pluralize(params[:minutes])} from now to #{params[:message]}"
+  end
+
+  def daily_reminder_response_text(command)
+    return unless command[:intent] == :daily_reminder
+
+    params = command[:params]
+    "Daily reminder: #{format_time(params[:hour], params[:minute])} - #{params[:message]}"
+  end
+
+  def reminder_response_text(command, user)
+    return unless command[:intent] == :reminder
+
+    params    = command[:params]
+    time_str  = format_time(params[:hour], params[:minute])
+    tomorrow  = resolve_reminder_time(params, user).to_date > Time.current.in_time_zone(user.timezone).to_date
     "Reminder set for #{time_str}#{' tomorrow' if tomorrow} to #{params[:message]}"
   end
 
@@ -51,8 +80,8 @@ class CommandResponder
     end
   end
 
-  def unknown_response_text(command)
-    return UNKNOWN_INTENT_MESSAGE unless command[:params][:error] == :replacement_phrase_taken
+  def phrase_already_in_use_error_response_text(command)
+    return unless command[:params][:error] == :replacement_phrase_taken
 
     kind = command[:params][:kind]
     if kind == "alias_phrase_replacement"
@@ -62,28 +91,13 @@ class CommandResponder
     end
   end
 
-  def simple_command_text(intent, user)
-    if intent == :time_check
-      time = Time.current.in_time_zone(user.timezone)
-      "The time is #{time.strftime("%-I:%M %p")}"
-    elsif intent == :sunset
-      sunset = @geo_client.sunset_time(lat: user.lat, lng: user.lng)
-      local = sunset.in_time_zone(user.timezone)
-      "Sunset today is at #{local.strftime("%-I:%M %p")}"
-    end
-  end
-
-  def timer_text(minutes)
-    "Timer set for #{minutes} #{"minute".pluralize(minutes)}"
-  end
-
-  def daily_reminder_text(params)
-    "Daily reminder: #{format_time(params[:hour], params[:minute])} - #{params[:message]}"
+  def unknown_response_text
+    UNKNOWN_INTENT_MESSAGE
   end
 
   def schedule_reminder(command, user)
     fire_at = case command[:intent]
-    when :timer
+    when :timer, :relative_reminder
       command[:params][:minutes].minutes.from_now
     when :reminder, :daily_reminder
       resolve_reminder_time(command[:params], user)
@@ -98,7 +112,8 @@ class CommandResponder
     end
 
     recurs = command[:intent] == :daily_reminder
-    reminder = Reminder.create!(user: user, kind: command[:intent], message: message, fire_at: fire_at, recurs_daily: recurs)
+    kind = command[:intent] == :relative_reminder ? :reminder : command[:intent]
+    reminder = Reminder.create!(user: user, kind: kind, message: message, fire_at: fire_at, recurs_daily: recurs)
     ReminderJob.set(wait_until: fire_at).perform_later(reminder.id)
 
     next_reminder = reminder.next_in_list
