@@ -8,6 +8,7 @@ affected_components:
 symptoms:
   - "unrecognized cop or department Layout/LeadingEmptyLine found in rubocop-erb-0.7.0/config/default.yml"
   - "rubocop-erb extension supports plugin, specify `plugins: rubocop-erb` instead of `require: rubocop-erb`"
+  - "bundle exec rubocop only inspects ERB files — Ruby files silently excluded"
 tags:
   - rubocop
   - rubocop-erb
@@ -40,17 +41,32 @@ rubocop-erb extension supports plugin, specify `plugins: rubocop-erb`
 instead of `require: rubocop-erb` in .rubocop.yml.
 ```
 
+**Silent Ruby file exclusion with `plugins:` + bare `Include:`:**
+```
+$ bundle exec rubocop --list-target-files
+app/views/layouts/application.html.erb
+app/views/voice_commands/index.html.erb
+... (only ERB files — all .rb files missing)
+```
+
 ## Root Cause
 
-`rubocop-erb` 0.7.0's bundled `config/default.yml` references the cop
-`Layout/LeadingEmptyLine` (singular), which was renamed to
-`Layout/LeadingEmptyLines` (plural) in a newer RuboCop release. Loading
-that config via `inherit_gem` causes RuboCop to abort at startup because
-the cop name no longer exists.
+Three separate issues compound here:
 
-Using `require: rubocop-erb` bypasses the stale config file and works, but
-rubocop-erb has since migrated to the RuboCop plugin API, so `require:` is
-deprecated in favour of `plugins:`.
+1. **Stale cop name**: `rubocop-erb` 0.7.0's bundled `config/default.yml`
+   references `Layout/LeadingEmptyLine` (singular), renamed to
+   `Layout/LeadingEmptyLines` (plural) in a newer RuboCop release. Loading
+   that config via `inherit_gem` causes RuboCop to abort at startup.
+
+2. **Deprecated require API**: Using `require: rubocop-erb` bypasses the
+   stale config and works, but rubocop-erb has migrated to the RuboCop
+   plugin API, so `require:` is deprecated in favour of `plugins:`.
+
+3. **Include replaces rather than merges**: When you add `Include:` under
+   `AllCops` in your own `.rubocop.yml`, it *replaces* the default Ruby file
+   patterns inherited from parent configs rather than appending to them.
+   Adding `"**/*.erb"` without `inherit_mode: merge` silently drops all
+   `**/*.rb` patterns, leaving only ERB files in the target list.
 
 ## What Doesn't Work
 
@@ -66,10 +82,20 @@ require:
   - rubocop-erb
 ```
 
+```yaml
+# ❌ plugins + bare Include — silently drops Ruby files from target list
+plugins:
+  - rubocop-erb
+AllCops:
+  Include:
+    - "**/*.erb"   # replaces inherited Ruby patterns; only ERB files inspected
+```
+
 ## Solution
 
-Use the `plugins:` API and manually add `"**/*.erb"` to `AllCops/Include`
-(since we skip `inherit_gem`, the gem's Include pattern is not loaded):
+Use `plugins:`, add `"**/*.erb"` to `AllCops/Include`, and add
+`inherit_mode: merge: Include` so the ERB pattern is appended to the
+inherited Ruby patterns rather than replacing them:
 
 **Gemfile:**
 ```ruby
@@ -88,6 +114,12 @@ end
 plugins:
   - rubocop-erb
 
+# merge (not replace) Include/Exclude arrays from inherited configs
+inherit_mode:
+  merge:
+    - Include
+    - Exclude
+
 inherit_gem:
   rubocop-rails-omakase: rubocop.yml
 
@@ -95,7 +127,7 @@ AllCops:
   NewCops: enable
   TargetRubyVersion: 4.0
   Include:
-    - "**/*.erb"          # must be explicit — not loaded from gem's default.yml
+    - "**/*.erb"          # appended to inherited Ruby patterns via inherit_mode
   Exclude:
     - "db/schema.rb"
     - "db/migrate/*.rb"
@@ -105,11 +137,12 @@ AllCops:
 ## Verification
 
 ```bash
-# No errors, no warnings — clean config load
-bundle exec rubocop app/views/
+# Check the full target file list — should include both .rb and .erb files
+bundle exec rubocop --list-target-files
 
-# Confirm ERB files are being inspected
-bundle exec rubocop --debug 2>&1 | grep "\.erb"
+# Run the full suite — file count should match all Ruby + ERB files
+bundle exec rubocop
+# => XX files inspected, no offenses detected  (not just 10 ERB files)
 ```
 
 ## Prevention
@@ -118,6 +151,10 @@ bundle exec rubocop --debug 2>&1 | grep "\.erb"
   `config/default.yml` with cop names that match your RuboCop version.
   If unsure, prefer `plugins:` + explicit `Include:` patterns over
   `inherit_gem:` — this bypasses any stale config the gem bundles.
+- **Always add `inherit_mode: merge: Include` when extending `AllCops/Include`.**
+  Without it, any `Include:` you add replaces the inherited patterns from
+  parent configs, silently dropping all Ruby files from the target list.
+  Verify with `bundle exec rubocop --list-target-files`.
 - **When rubocop-erb releases a fix** (updating `default.yml` to use
   `Layout/LeadingEmptyLines`), `inherit_gem: rubocop-erb: config/default.yml`
   will work again and the `plugins:` + manual `Include:` workaround can be
