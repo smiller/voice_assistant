@@ -1,7 +1,7 @@
 ---
 title: "feat: Add 'reminder in N minutes' command and document 'set a reminder at' variants"
 type: feat
-status: active
+status: completed
 date: 2026-02-27
 ---
 
@@ -216,19 +216,19 @@ Add the new command to the voice command list, alongside the existing reminder f
 
 ## Acceptance Criteria
 
-- [ ] `parser.parse("set a reminder in 20 minutes to take the food out of the oven")` returns `{ intent: :relative_reminder, params: { minutes: 20, message: "take the food out of the oven" } }`
-- [ ] Spoken number words normalise correctly ("twenty" → 20)
-- [ ] Singular "minute" matches as well as "minutes"
-- [ ] Omitting the "to" linking word still parses the message
-- [ ] `CommandResponder` confirms with "Reminder set for N minutes from now to <message>"
-- [ ] `Reminder` is created with `kind: "reminder"`, `fire_at: N.minutes.from_now`, `message:`, `recurs_daily: false`
-- [ ] Reminder appears in the `#reminders` section on the home page via Turbo broadcast
-- [ ] At `fire_at`, `ReminderJob` synthesizes `"It's X PM. Reminder: <message>"` (existing path, no changes needed)
-- [ ] `"set a reminder at 9pm"` and `"set a daily reminder at 9pm"` have explicit spec coverage confirming they already work
-- [ ] README updated with all three new command rows
-- [ ] Home page command list updated
-- [ ] A relative reminder created between two existing reminders appears between them in the `#reminders` list (verified via `Reminder#next_in_list` returning the correct sibling)
-- [ ] Full RSpec suite passes; RuboCop clean; mutant run against `CommandParser` and `CommandResponder`
+- [x] `parser.parse("set a reminder in 20 minutes to take the food out of the oven")` returns `{ intent: :relative_reminder, params: { minutes: 20, message: "take the food out of the oven" } }`
+- [x] Spoken number words normalise correctly ("twenty" → 20)
+- [x] Singular "minute" matches as well as "minutes"
+- [x] Omitting the "to" linking word still parses the message
+- [x] `CommandResponder` confirms with "Reminder set for N minutes from now to <message>"
+- [x] `Reminder` is created with `kind: "reminder"`, `fire_at: N.minutes.from_now`, `message:`, `recurs_daily: false`
+- [x] Reminder appears in the `#reminders` section on the home page via Turbo broadcast
+- [x] At `fire_at`, `ReminderJob` synthesizes `"It's X PM. Reminder: <message>"` (existing path, no changes needed)
+- [x] `"set a reminder at 9pm"` and `"set a daily reminder at 9pm"` have explicit spec coverage confirming they already work
+- [x] README updated with all three new command rows
+- [x] Home page command list updated
+- [x] A relative reminder created between two existing reminders appears between them in the `#reminders` list (verified via `Reminder#next_in_list` returning the correct sibling)
+- [x] Full RSpec suite passes; RuboCop clean; mutant run against `CommandParser` and `CommandResponder`
 
 ---
 
