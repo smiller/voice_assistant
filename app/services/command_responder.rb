@@ -18,13 +18,14 @@ class CommandResponder
   private
 
   def response_text(command, user)
-    simple_command_response_text(command, user) ||
-      timer_response_text(command)              ||
-      relative_reminder_response_text(command)  ||
-      daily_reminder_response_text(command)     ||
-      reminder_response_text(command, user)     ||
-      loop_response_text(command, user)         ||
-      unknown_response_text(command)
+    simple_command_response_text(command, user)          ||
+      timer_response_text(command)                       ||
+      relative_reminder_response_text(command)           ||
+      daily_reminder_response_text(command)              ||
+      reminder_response_text(command, user)              ||
+      loop_response_text(command, user)                  ||
+      phrase_already_in_use_error_response_text(command) ||
+      unknown_response_text
   end
 
   def simple_command_response_text(command, user)
@@ -79,8 +80,8 @@ class CommandResponder
     end
   end
 
-  def unknown_response_text(command)
-    return UNKNOWN_INTENT_MESSAGE unless command[:params][:error] == :replacement_phrase_taken
+  def phrase_already_in_use_error_response_text(command)
+    return unless command[:params][:error] == :replacement_phrase_taken
 
     kind = command[:params][:kind]
     if kind == "alias_phrase_replacement"
@@ -88,6 +89,10 @@ class CommandResponder
     else
       "Stop phrase also already in use. Try another, or say 'give up' to cancel."
     end
+  end
+
+  def unknown_response_text
+    UNKNOWN_INTENT_MESSAGE
   end
 
   def schedule_reminder(command, user)
