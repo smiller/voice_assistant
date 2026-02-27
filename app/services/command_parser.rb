@@ -16,7 +16,7 @@ class CommandParser
   def parse(transcript)
     normalized = normalize_numbers(transcript)
 
-    simple_command(normalized)                  ||
+    simple_command(normalized)                ||
       timer_command(normalized)               ||
       loop_command(normalized)                ||
       relative_reminder_command(normalized)   ||
