@@ -1,6 +1,11 @@
 plugins:
   - rubocop-erb
 
+inherit_mode:
+  merge:
+    - Include
+    - Exclude
+
 inherit_gem:
   rubocop-rails-omakase: rubocop.yml
 
