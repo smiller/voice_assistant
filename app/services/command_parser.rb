@@ -16,10 +16,11 @@ class CommandParser
   def parse(transcript)
     normalized = normalize_numbers(transcript)
 
-    simple_command(normalized)               ||
-      timer_command(normalized)              ||
-      loop_command(normalized)               ||
-      scheduled_reminder_command(normalized) ||
+    simple_command(normalized)                  ||
+      timer_command(normalized)               ||
+      loop_command(normalized)                ||
+      relative_reminder_command(normalized)   ||
+      scheduled_reminder_command(normalized)  ||
       unrecognized_command
   end
 
@@ -48,6 +49,12 @@ class CommandParser
     elsif (m = normalized.match(/\brun\s+(?:loop|looping\s+reminder)\s+(\d+)/i))
       { intent: :run_loop, params: { number: m[1].to_i } }
     end
+  end
+
+  def relative_reminder_command(normalized)
+    return unless (m = normalized.match(/\breminder\s+in\s+(\d+)\s+minutes?\s+(?:to\s+)?(.+)/i))
+
+    { intent: :relative_reminder, params: { minutes: m[1].to_i, message: m[2].strip } }
   end
 
   def scheduled_reminder_command(normalized)
